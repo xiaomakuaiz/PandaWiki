@@ -81,7 +81,7 @@ const FaqConfig = ({ setIsEdit, id }: ConfigProps) => {
             <TextField label='文字' {...field} placeholder='请输入' />
           )}
         />
-        <Controller
+        {/* <Controller
           control={control}
           name='title_color'
           render={({ field }) => (
@@ -92,9 +92,9 @@ const FaqConfig = ({ setIsEdit, id }: ConfigProps) => {
               sx={{ flex: 1 }}
             />
           )}
-        />
+        /> */}
       </CommonItem>
-      <CommonItem title='背景颜色'>
+      {/* <CommonItem title='背景颜色'>
         <Controller
           control={control}
           name='bg_color'
@@ -106,8 +106,8 @@ const FaqConfig = ({ setIsEdit, id }: ConfigProps) => {
             />
           )}
         />
-      </CommonItem>
-      <CommonItem title='问题列表' onAdd={handleAddQuestion}>
+      </CommonItem> */}
+      <CommonItem title='链接列表' onAdd={handleAddQuestion}>
         {list.length === 0 ? (
           <Empty />
         ) : (
