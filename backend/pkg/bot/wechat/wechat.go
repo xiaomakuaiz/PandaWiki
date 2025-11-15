@@ -138,7 +138,10 @@ func (cfg *WechatConfig) SendURLToUser(touser, question, token, conversationID, 
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, "", err
+	}
 
 	var result struct {
 		Errcode int    `json:"errcode"`
@@ -175,7 +178,10 @@ func (cfg *WechatConfig) SendResponseToUser(response string, touser string, toke
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, "", err
+	}
 
 	var result struct {
 		Errcode int    `json:"errcode"`

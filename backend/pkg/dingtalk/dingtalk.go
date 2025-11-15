@@ -120,7 +120,10 @@ func NewDingTalkClient(ctx context.Context, logger *log.Logger, clientId, client
 
 // GenerateAuthURL 生成钉钉授权URL
 func (c *Client) GenerateAuthURL(redirectURI string, state string) string {
-	redirectURL, _ := url.Parse(redirectURI)
+	redirectURL, err := url.Parse(redirectURI)
+	if err != nil {
+		return ""
+	}
 	redirectURL.Path = callbackPath
 	redirectURI = redirectURL.String()
 

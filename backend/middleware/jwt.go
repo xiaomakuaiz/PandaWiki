@@ -156,7 +156,14 @@ func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.Mi
 				})
 			}
 
-			kbId, _ := GetKbID(c)
+			kbId, err := GetKbID(c)
+		if err != nil {
+			m.logger.Error("ValidateKBUserPerm GetKbID failed", log.Error(err))
+			return c.JSON(http.StatusUnauthorized, map[string]any{
+				"Code":    http.StatusUnauthorized,
+				"Message": "Unauthorized",
+			})
+		}
 
 			if authInfo.IsToken {
 

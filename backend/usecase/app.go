@@ -771,8 +771,8 @@ func (u *AppUsecase) handleBotAuth(ctx context.Context, kbID, appId string, curr
 		}
 		defer u.cache.ReleaseLock(ctx, rdsKey)
 
-		existingAuth, _ := u.authRepo.GetAuthByKBIDAndSourceType(ctx, kbID, sourceType)
-		if existingAuth != nil {
+		existingAuth, err := u.authRepo.GetAuthByKBIDAndSourceType(ctx, kbID, sourceType)
+		if err == nil && existingAuth != nil {
 			return nil
 		}
 

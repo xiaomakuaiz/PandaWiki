@@ -30,7 +30,10 @@ func NewGithubClient(ctx context.Context, logger *log.Logger, clientID, clientSe
 		return nil, fmt.Errorf("failed to retrieve license edition from context")
 	}
 
-	redirectURL, _ := url.Parse(redirectURI)
+	redirectURL, err := url.Parse(redirectURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse redirect URI: %w", err)
+	}
 	redirectURL.Path = githubCallbackPath
 
 	if licenseEdition > consts.LicenseEditionFree {

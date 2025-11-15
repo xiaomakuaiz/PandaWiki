@@ -46,7 +46,10 @@ type UserInfo struct {
 
 // NewClient 创建OAuth客户端
 func NewClient(ctx context.Context, logger *log.Logger, config Config) (*Client, error) {
-	redirectURL, _ := url.Parse(config.RedirectURI)
+	redirectURL, err := url.Parse(config.RedirectURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse redirect URI: %w", err)
+	}
 	redirectURL.Path = callbackPath
 	redirectURI := redirectURL.String()
 

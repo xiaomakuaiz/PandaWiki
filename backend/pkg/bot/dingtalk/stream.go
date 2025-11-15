@@ -326,9 +326,17 @@ func (c *DingTalkClient) GetUserInfo(userID string) (*UserDetailResponse, error)
 	// 1. 构建URL和请求体
 	url := "https://oapi.dingtalk.com/topapi/v2/user/get"
 	payload := map[string]string{"userid": userID, "language": "zh_CN"} // 默认是中文
-	jsonPayload, _ := json.Marshal(payload)
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		c.logger.Error("Failed to marshal payload: %v", log.Error(err))
+		return nil, err
+	}
 
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		c.logger.Error("Failed to create HTTP request: %v", log.Error(err))
+		return nil, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	query := req.URL.Query()
 	query.Add("access_token", accessToken)
@@ -341,7 +349,11 @@ func (c *DingTalkClient) GetUserInfo(userID string) (*UserDetailResponse, error)
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.logger.Error("Failed to read response body: %v", log.Error(err))
+		return nil, err
+	}
 
 	// 获取到用户信息
 	c.logger.Info("Get user info from dingtalk success", log.Any("resp 原始的消息：", resp))

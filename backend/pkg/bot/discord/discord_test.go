@@ -10,7 +10,10 @@ import (
 )
 
 func TestDiscord(t *testing.T) {
-	cfg, _ := config.NewConfig()
+	cfg, err := config.NewConfig()
+	if err != nil {
+		t.Fatalf("failed to create config: %v", err)
+	}
 	log := log.NewLogger(cfg)
 	token := "token"
 	getQA := func(ctx context.Context, msg string, info domain.ConversationInfo, ConversationID string) (chan string, error) {

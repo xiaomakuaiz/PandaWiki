@@ -118,7 +118,10 @@ func (jp *JsonParse) Generate(encrypt, signature, timestamp, nonce string) strin
 		Timestamp:    timestamp,
 		Nonce:        nonce,
 	}
-	bs, _ := json.Marshal(resp)
+	bs, err := json.Marshal(resp)
+	if err != nil {
+		return ""
+	}
 	return string(bs)
 }
 

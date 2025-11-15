@@ -268,7 +268,10 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	config := map[string]any{
 		"apps": apps,
 	}
-	newBody, _ := json.Marshal(config)
+	newBody, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
 	tr := &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
 			return net.Dial("unix", socketPath)

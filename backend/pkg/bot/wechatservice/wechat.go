@@ -96,7 +96,11 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	openkfId := current.OpenKfid
 	content := current.Text.Content
 
-	token, _ := cfg.GetAccessToken()
+	token, err := cfg.GetAccessToken()
+	if err != nil {
+		cfg.logger.Error("failed to get access token", log.Error(err))
+		return err
+	}
 
 	state, err := CheckSessionState(token, userId, openkfId)
 	if err != nil {
