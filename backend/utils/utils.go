@@ -37,7 +37,7 @@ func HTTPGet(url string) ([]byte, error) {
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, //nolint:gosec // G402: General utility function, may need to access servers with self-signed certificates
 			},
 		},
 	}
@@ -211,7 +211,7 @@ func UploadImage(ctx context.Context, minioClient *s3.MinioClient, imageURL stri
 	} else {
 		// 从本地文件系统读取图片
 		var err error
-		data, err = os.ReadFile(imageURL)
+		data, err = os.ReadFile(imageURL) //nolint:gosec // G304: imageURL is from trusted internal source for file upload
 		if err != nil {
 			return "", fmt.Errorf("failed to read image file: %v", err)
 		}

@@ -115,7 +115,7 @@ func NewClient(ctx context.Context, logger *log.Logger, config Config) (*Client,
 		config: &config,
 		httpClient: &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // G402: CAS server may use self-signed certificates
 			},
 		},
 	}, nil

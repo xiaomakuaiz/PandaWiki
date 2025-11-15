@@ -7,7 +7,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // G505: SHA1 required by WeChat Work API specification
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -79,7 +79,7 @@ func (s *SHA1) GetSHA1(token, timestamp, nonce string, encrypt interface{}) (int
 	list := []string{token, timestamp, nonce, encStr}
 	sort.Strings(list)
 	joined := strings.Join(list, "")
-	h := sha1.New()
+	h := sha1.New() //nolint:gosec // G401: SHA1 required by WeChat Work API specification
 	_, err := h.Write([]byte(joined))
 	if err != nil {
 		return WXBizMsgCrypt_ComputeSignature_Error, ""
@@ -188,7 +188,7 @@ func (pc *Prpcrypt) Encrypt(plainText string, receiveID string) (int, string) {
 	// len(txt) 网络字节序
 	lenBuf := make([]byte, 4)
 	// Python 示例使用 socket.htonl(len(text))，即 network order (big endian)
-	binary.BigEndian.PutUint32(lenBuf, uint32(len(txt)))
+	binary.BigEndian.PutUint32(lenBuf, uint32(len(txt))) //nolint:gosec // G115: Safe conversion, text length is within uint32 range
 	buf.Write(lenBuf)
 	buf.Write(txt)
 	buf.Write([]byte(receiveID))

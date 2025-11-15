@@ -69,7 +69,7 @@ func (h *AppHandler) GetAppDetail(c echo.Context) error {
 		return h.NewResponseWithError(c, "invalid app type", err)
 	}
 	ctx := c.Request().Context()
-	app, err := h.usecase.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppType(appTypeInt))
+	app, err := h.usecase.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppType(appTypeInt)) //nolint:gosec // G115: Safe conversion, appTypeInt is validated enum value
 	if err != nil {
 		return h.NewResponseWithError(c, "get app detail failed", err)
 	}

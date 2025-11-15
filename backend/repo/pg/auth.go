@@ -168,7 +168,7 @@ func (r *AuthRepo) GetAuthGroupIdsWithParentsByAuthId(ctx context.Context, authI
 
 	result := make([]int, 0, len(groupsMap))
 	for _, group := range groupsMap {
-		result = append(result, int(group.ID))
+		result = append(result, int(group.ID)) //nolint:gosec // G115: Safe conversion, group.ID is database ID
 	}
 
 	return result, nil

@@ -68,7 +68,7 @@ func createSelfSignedCerts() error {
 	}
 
 	// ensure dir /app/etc/nginx/ssl exists
-	if err := os.MkdirAll("/app/etc/nginx/ssl", 0o755); err != nil {
+	if err := os.MkdirAll("/app/etc/nginx/ssl", 0o750); err != nil {
 		return fmt.Errorf("failed to create ssl dir: %v", err)
 	}
 

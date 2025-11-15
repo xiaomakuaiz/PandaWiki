@@ -81,13 +81,13 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 
 	// ensure dir is exists
 	dir := filepath.Dir(machineIDFile)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", fmt.Errorf("failed to create machine ID directory: %w", err)
 	}
 
 	// create lock file to prevent concurrent access
 	lockFile := machineIDFile + ".lock"
-	lock, err := os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	lock, err := os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		if os.IsExist(err) {
 			// if lock file already exists, wait and try again
@@ -115,12 +115,12 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 	id := uuid.New().String()
 
 	// write machine ID to file and ensure data is written to disk
-	if err := os.WriteFile(machineIDFile, []byte(id), 0o644); err != nil {
+	if err := os.WriteFile(machineIDFile, []byte(id), 0o600); err != nil {
 		return "", fmt.Errorf("failed to write machine ID file: %w", err)
 	}
 
 	// sync file to ensure data is written to disk
-	if file, err := os.OpenFile(machineIDFile, os.O_RDWR, 0o644); err == nil {
+	if file, err := os.OpenFile(machineIDFile, os.O_RDWR, 0o600); err == nil {
 		if err := file.Sync(); err != nil {
 			if err := file.Close(); err != nil {
 				c.logger.Error("failed to close machine ID file after write", log.Error(err))

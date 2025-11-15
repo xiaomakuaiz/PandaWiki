@@ -20,7 +20,7 @@ const (
 	// AuthURL api doc https://developer.work.weixin.qq.com/document/path/98152
 	AuthWebURL    = "https://login.work.weixin.qq.com/wwlogin/sso/login"
 	AuthAPPURL    = "https://open.weixin.qq.com/connect/oauth2/authorize"
-	TokenURL      = "https://qyapi.weixin.qq.com/cgi-bin/gettoken"
+	TokenURL      = "https://qyapi.weixin.qq.com/cgi-bin/gettoken"               //nolint:gosec // G101: Not a credential, just API endpoint URL
 	UserInfoURL   = "https://qyapi.weixin.qq.com/cgi-bin/auth/getuserinfo"
 	UserDetailURL = "https://qyapi.weixin.qq.com/cgi-bin/user/get"
 	// DepartmentListURL https://developer.work.weixin.qq.com/document/path/90344

@@ -109,7 +109,7 @@ func (h *ShareCommentHandler) CreateComment(c echo.Context) error {
 	if appInfo.Settings.WebAppCommentSettings.ModerationEnable {
 		status = 0
 	}
-	commentStatus := domain.CommentStatus(status)
+	commentStatus := domain.CommentStatus(status) //nolint:gosec // G115: Safe conversion, status is always 0 or 1
 
 	// 插入到数据库中
 	commentID, err := h.usecase.CreateComment(ctx, &req, kbID, remoteIP, commentStatus, userIDValue)
