@@ -320,6 +320,7 @@ func (c *Client) GetUserList(ctx context.Context, deptID string) (*UserListRespo
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user list: %w", err)
 	}
+	defer resp.Body.Close()
 
 	rawBody, err := io.ReadAll(resp.Body)
 	if err != nil {
