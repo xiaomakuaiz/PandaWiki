@@ -83,20 +83,20 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 	switch req.Msgtype {
 	case "text":
 		// Generate conversation ID
-		id, err := uuid.NewV7()
-		if err != nil {
-			u.logger.Error("failed to generate conversation uuid", log.Error(err))
+		id, uuidErr := uuid.NewV7()
+		if uuidErr != nil {
+			u.logger.Error("failed to generate conversation uuid", log.Error(uuidErr))
 			id = uuid.New()
 		}
 		conversationID := id.String()
 
 		redisKey := fmt.Sprintf("wecom-aibot-%s", req.Msgid)
-		if err := u.cache.SetNX(ctx, redisKey, conversationID, 15*time.Minute).Err(); err != nil {
+		if cacheErr := u.cache.SetNX(ctx, redisKey, conversationID, 15*time.Minute).Err(); cacheErr != nil {
 			u.logger.Error("failed to store conversation mapping in cache",
 				log.String("redis_key", redisKey),
 				log.String("conversation_id", conversationID),
-				log.Error(err))
-			return "", fmt.Errorf("cache operation failed: %w", err)
+				log.Error(cacheErr))
+			return "", fmt.Errorf("cache operation failed: %w", cacheErr)
 		}
 
 		// Get auth user for WeChat Work bot
@@ -119,7 +119,7 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 				go func() {
 					bgCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 					defer cancel()
-					eventCh, err := u.chatUsecase.Chat(bgCtx, &domain.ChatRequest{
+					eventCh, chatErr := u.chatUsecase.Chat(bgCtx, &domain.ChatRequest{
 						Message:        req.Text.Content,
 						KBID:           kbID,
 						AppType:        domain.AppTypeWecomAIBot,
@@ -134,8 +134,8 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 							},
 						},
 					})
-					if err != nil {
-						u.logger.Error("failed to create chat", log.Error(err))
+					if chatErr != nil {
+						u.logger.Error("failed to create chat", log.Error(chatErr))
 						// Clean up state
 						if val, ok := domain.ConversationManager.Load(conversationID); ok {
 							state := val.(*domain.ConversationState)
@@ -163,12 +163,12 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 
 		redisKey := fmt.Sprintf("wecom-aibot-%s", req.Stream.Id)
 
-		conversationId, err := u.cache.Get(ctx, redisKey).Result()
-		if err != nil || conversationId == "" {
-			resp, err := wecomAIBotClient.MakeStreamResp(nonce, req.Stream.Id, "服务内部异常，请稍后重试", true)
-			if err != nil {
-				u.logger.Error("MakeStreamResp failed", log.Error(err))
-				return "", err
+		conversationId, getErr := u.cache.Get(ctx, redisKey).Result()
+		if getErr != nil || conversationId == "" {
+			resp, respErr := wecomAIBotClient.MakeStreamResp(nonce, req.Stream.Id, "服务内部异常，请稍后重试", true)
+			if respErr != nil {
+				u.logger.Error("MakeStreamResp failed", log.Error(respErr))
+				return "", respErr
 			}
 			return resp, nil
 		}

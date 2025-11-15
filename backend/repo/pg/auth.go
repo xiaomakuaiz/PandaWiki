@@ -208,9 +208,9 @@ func (r *AuthRepo) CreateAuthConfig(ctx context.Context, authConfig *domain.Auth
 
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				if err := tx.Model(&domain.AuthConfig{}).
-					Create(authConfig).Error; err != nil {
-					return err
+				if createErr := tx.Model(&domain.AuthConfig{}).
+					Create(authConfig).Error; createErr != nil {
+					return createErr
 				}
 				return nil
 			}
@@ -293,11 +293,11 @@ func (r *AuthRepo) GetOrCreateAuth(ctx context.Context, auth *domain.Auth, sourc
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				var count int64
 				// 统计时排除机器人类型的认证，机器人不占用license限制名额
-				if err := tx.Model(&domain.Auth{}).
+				if countErr := tx.Model(&domain.Auth{}).
 					Where("kb_id = ?", auth.KBID).
 					Where("source_type NOT IN (?)", consts.BotSourceTypes).
-					Count(&count).Error; err != nil {
-					return err
+					Count(&count).Error; countErr != nil {
+					return countErr
 				}
 
 				if int(count) >= domain.GetBaseEditionLimitation(ctx).MaxSSOUser {
@@ -305,8 +305,8 @@ func (r *AuthRepo) GetOrCreateAuth(ctx context.Context, auth *domain.Auth, sourc
 				}
 
 				auth.LastLoginTime = time.Now()
-				if err := tx.Model(&domain.Auth{}).Create(auth).Error; err != nil {
-					return err
+				if createErr := tx.Model(&domain.Auth{}).Create(auth).Error; createErr != nil {
+					return createErr
 				}
 				return nil
 			}

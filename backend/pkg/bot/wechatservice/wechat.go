@@ -117,18 +117,18 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 		}) {
 			// 改变状态为人工接待
 			// 非人工 ->转人工
-			humanList, err := cfg.GetKfHumanList(token, openkfId)
-			if err != nil {
-				cfg.logger.Error("get human list failed", log.Error(err))
-				return err
+			humanList, getHumanErr := cfg.GetKfHumanList(token, openkfId)
+			if getHumanErr != nil {
+				cfg.logger.Error("get human list failed", log.Error(getHumanErr))
+				return getHumanErr
 			}
 			// 遍历找到可以接待的员工
 			for _, servicer := range humanList.ServicerList {
 				if servicer.Status == 0 { // 可以接待
-					err := ChangeState(token, userId, openkfId, 3, servicer.UserID)
-					if err != nil {
-						cfg.logger.Error("change state to human failed", log.Error(err))
-						return err
+					changeErr := ChangeState(token, userId, openkfId, 3, servicer.UserID)
+					if changeErr != nil {
+						cfg.logger.Error("change state to human failed", log.Error(changeErr))
+						return changeErr
 					}
 					cfg.logger.Info("change state to human successful") // 转人工成功
 					return nil
@@ -141,8 +141,8 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	}
 
 	// 1. first response to user
-	if err := cfg.SendResponseToKfTxt(userId, openkfId, "正在思考您的问题，请稍等...", token); err != nil {
-		return err
+	if sendErr := cfg.SendResponseToKfTxt(userId, openkfId, "正在思考您的问题，请稍等...", token); sendErr != nil {
+		return sendErr
 	}
 
 	// 获取用户的详细信息
@@ -274,14 +274,14 @@ func (cfg *WechatServiceConfig) SendMessage(jsonData []byte, token string) error
 		MsgID   string `json:"msgid"`
 	}
 
-	if err := json.Unmarshal(body, &res); err != nil {
-		cfg.logger.Error("解析响应失败", log.Error(err))
-		return err
+	if unmarshalErr := json.Unmarshal(body, &res); unmarshalErr != nil {
+		cfg.logger.Error("解析响应失败", log.Error(unmarshalErr))
+		return unmarshalErr
 	}
 
 	if res.ErrCode != 0 {
 		cfg.logger.Error("发送给微信客服消息失败", log.Any("errcode", res.ErrCode))
-		return err
+		return fmt.Errorf("send message failed: errcode=%d, errmsg=%s", res.ErrCode, res.ErrMsg)
 	}
 	// 发送消息给微信客服成功
 	s := string(body)

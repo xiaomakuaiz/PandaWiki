@@ -238,8 +238,8 @@ func (c *Client) GetUserInfoByCode(ctx context.Context, code string) (*UserDetai
 	resp.Body = io.NopCloser(bytes.NewReader(rawBody))
 
 	var userInfoResp UserInfoResponse
-	if err := json.NewDecoder(resp.Body).Decode(&userInfoResp); err != nil {
-		return nil, fmt.Errorf("failed to decode user info response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&userInfoResp); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode user info response: %w", decodeErr)
 	}
 
 	c.logger.Debug("GetUserInfoByCode resp:", log.Any("resp", userInfoResp))

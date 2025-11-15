@@ -75,15 +75,15 @@ func (u *ModelUsecase) TriggerUpsertRecords(ctx context.Context) error {
 		return fmt.Errorf("get knowledge base list failed: %w", err)
 	}
 	for _, kb := range kbList {
-		newDatasetID, err := u.ragStore.CreateKnowledgeBase(ctx)
-		if err != nil {
-			return fmt.Errorf("create new dataset failed: %w", err)
+		newDatasetID, createErr := u.ragStore.CreateKnowledgeBase(ctx)
+		if createErr != nil {
+			return fmt.Errorf("create new dataset failed: %w", createErr)
 		}
-		if err := u.ragStore.DeleteKnowledgeBase(ctx, kb.DatasetID); err != nil {
-			return fmt.Errorf("delete old dataset failed: %w", err)
+		if deleteErr := u.ragStore.DeleteKnowledgeBase(ctx, kb.DatasetID); deleteErr != nil {
+			return fmt.Errorf("delete old dataset failed: %w", deleteErr)
 		}
-		if err := u.kbRepo.UpdateDatasetID(ctx, kb.ID, newDatasetID); err != nil {
-			return fmt.Errorf("update knowledge base dataset id failed: %w", err)
+		if updateErr := u.kbRepo.UpdateDatasetID(ctx, kb.ID, newDatasetID); updateErr != nil {
+			return fmt.Errorf("update knowledge base dataset id failed: %w", updateErr)
 		}
 	}
 	// traverse all nodes
@@ -96,8 +96,8 @@ func (u *ModelUsecase) TriggerUpsertRecords(ctx context.Context) error {
 				Action:        "upsert",
 			},
 		}
-		if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, nodeContentVectorRequests); err != nil {
-			return err
+		if asyncErr := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, nodeContentVectorRequests); asyncErr != nil {
+			return asyncErr
 		}
 		return nil
 	})
@@ -228,8 +228,8 @@ func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey
 	}
 
 	var config domain.ModelModeSetting
-	if err := json.Unmarshal(setting.Value, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse current model setting: %w", err)
+	if unmarshalErr := json.Unmarshal(setting.Value, &config); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to parse current model setting: %w", unmarshalErr)
 	}
 
 	// 更新设置

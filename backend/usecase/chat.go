@@ -116,9 +116,9 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 				return
 			}
 		} else if req.ConversationID == "" {
-			id, err := uuid.NewV7()
-			if err != nil {
-				u.logger.Error("failed to generate conversation uuid", log.Error(err))
+			id, uuidErr := uuid.NewV7()
+			if uuidErr != nil {
+				u.logger.Error("failed to generate conversation uuid", log.Error(uuidErr))
 				id = uuid.New()
 			}
 			conversationID := id.String()
@@ -146,9 +146,9 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 				eventCh <- domain.SSEEvent{Type: "error", Content: "nonce is required"}
 				return
 			}
-			err := u.conversationUsecase.ValidateConversationNonce(ctx, req.ConversationID, req.Nonce)
-			if err != nil {
-				u.logger.Error("failed to validate chat conversation nonce", log.Error(err))
+			validateErr := u.conversationUsecase.ValidateConversationNonce(ctx, req.ConversationID, req.Nonce)
+			if validateErr != nil {
+				u.logger.Error("failed to validate chat conversation nonce", log.Error(validateErr))
 				eventCh <- domain.SSEEvent{Type: "error", Content: "validate chat conversation nonce failed"}
 				return
 			}
@@ -158,7 +158,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		eventCh <- domain.SSEEvent{Type: "message_id", Content: messageId}
 		userMessageId := uuid.New().String()
 		// save user question to conversation message
-		if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
+		if saveErr := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
 			ID:             userMessageId,
 			ConversationID: req.ConversationID,
 			KBID:           req.KBID,
@@ -166,8 +166,8 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			Role:           schema.User,
 			Content:        req.Message,
 			RemoteIP:       req.RemoteIP,
-		}); err != nil {
-			u.logger.Error("failed to save user question to conversation message", log.Error(err))
+		}); saveErr != nil {
+			u.logger.Error("failed to save user question to conversation message", log.Error(saveErr))
 			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to save user question to conversation message"}
 			return
 		}
@@ -180,11 +180,11 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		}
 		if len(blockWords) > 0 { // check --> filter
 			questionFilter := utils.GetDFA(req.KBID)
-			if err := questionFilter.DFA.Check(req.Message); err != nil { // exist then return err
+			if checkErr := questionFilter.DFA.Check(req.Message); checkErr != nil { // exist then return err
 				answer := "**您的问题包含敏感词, AI 无法回答您的问题。**"
 				eventCh <- domain.SSEEvent{Type: "error", Content: answer}
 				// save ai answer and set it err
-				if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
+				if saveBlockErr := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
 					ID:             messageId,
 					ConversationID: req.ConversationID,
 					KBID:           req.KBID,
@@ -195,8 +195,8 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 					Model:          string(req.ModelInfo.Model),
 					RemoteIP:       req.RemoteIP,
 					ParentID:       userMessageId,
-				}); err != nil {
-					u.logger.Error("failed to save assistant answer to conversation message", log.Error(err))
+				}); saveBlockErr != nil {
+					u.logger.Error("failed to save assistant answer to conversation message", log.Error(saveBlockErr))
 					eventCh <- domain.SSEEvent{Type: "error", Content: "failed to save assistant answer to conversation message"}
 					return
 				}
@@ -205,8 +205,8 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		}
 
 		if req.Info.UserInfo.AuthUserID == 0 {
-			auth, err := u.AuthRepo.GetAuthBySourceType(ctx, req.AppType.ToSourceType())
-			if err == nil && auth != nil {
+			auth, authErr := u.AuthRepo.GetAuthBySourceType(ctx, req.AppType.ToSourceType())
+			if authErr == nil && auth != nil {
 				req.Info.UserInfo.AuthUserID = auth.ID
 			}
 		}

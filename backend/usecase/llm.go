@@ -210,9 +210,9 @@ func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name,
 
 	summaries := make([]string, 0, len(chunks))
 	for idx, chunk := range chunks {
-		summary, err := u.requestSummary(ctx, chatModel, name, chunk)
-		if err != nil {
-			u.logger.Error("Failed to generate summary for chunk", log.Int("chunk_index", idx), log.Error(err))
+		summary, summaryErr := u.requestSummary(ctx, chatModel, name, chunk)
+		if summaryErr != nil {
+			u.logger.Error("Failed to generate summary for chunk", log.Int("chunk_index", idx), log.Error(summaryErr))
 			continue
 		}
 		if summary == "" {

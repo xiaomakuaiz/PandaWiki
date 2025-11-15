@@ -280,8 +280,8 @@ func uploadMediaToWechat(accessToken string, reader io.Reader, fileName string) 
 		return "", fmt.Errorf("复制图片数据失败: %w", err)
 	}
 
-	if err := writer.Close(); err != nil {
-		return "", err
+	if closeErr := writer.Close(); closeErr != nil {
+		return "", closeErr
 	}
 
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=%s&type=image", accessToken)

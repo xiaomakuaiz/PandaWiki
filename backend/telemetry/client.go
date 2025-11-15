@@ -120,15 +120,15 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 	}
 
 	// sync file to ensure data is written to disk
-	if file, err := os.OpenFile(machineIDFile, os.O_RDWR, 0o600); err == nil {
-		if err := file.Sync(); err != nil {
-			if err := file.Close(); err != nil {
-				c.logger.Error("failed to close machine ID file after write", log.Error(err))
+	if file, openErr := os.OpenFile(machineIDFile, os.O_RDWR, 0o600); openErr == nil {
+		if syncErr := file.Sync(); syncErr != nil {
+			if closeErr := file.Close(); closeErr != nil {
+				c.logger.Error("failed to close machine ID file after write", log.Error(closeErr))
 			}
-			return "", fmt.Errorf("failed to sync machine ID file: %w", err)
+			return "", fmt.Errorf("failed to sync machine ID file: %w", syncErr)
 		}
-		if err := file.Close(); err != nil {
-			c.logger.Error("failed to close machine ID file after sync", log.Error(err))
+		if closeErr := file.Close(); closeErr != nil {
+			c.logger.Error("failed to close machine ID file after sync", log.Error(closeErr))
 		}
 	}
 	return id, nil

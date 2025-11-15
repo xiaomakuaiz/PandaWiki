@@ -132,8 +132,8 @@ type MyBinder struct {
 }
 
 func (b *MyBinder) Bind(i interface{}, c echo.Context) (err error) {
-	if err := b.BindPathParams(c, i); err != nil {
-		return err
+	if bindErr := b.BindPathParams(c, i); bindErr != nil {
+		return bindErr
 	}
 
 	method := c.Request().Method

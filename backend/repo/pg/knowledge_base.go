@@ -526,21 +526,21 @@ func (r *KnowledgeBaseRepository) UpdateKnowledgeBase(ctx context.Context, req *
 	}
 
 	if err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&domain.KnowledgeBase{}).Where("id = ?", req.ID).Updates(updateMap).Error; err != nil {
-			return err
+		if updateErr := tx.Model(&domain.KnowledgeBase{}).Where("id = ?", req.ID).Updates(updateMap).Error; updateErr != nil {
+			return updateErr
 		}
 		// get all kb list
 		var kbs []*domain.KnowledgeBaseListItem
-		if err := tx.Model(&domain.KnowledgeBase{}).
+		if findErr := tx.Model(&domain.KnowledgeBase{}).
 			Order("created_at ASC").
-			Find(&kbs).Error; err != nil {
-			return err
+			Find(&kbs).Error; findErr != nil {
+			return findErr
 		}
-		if err := r.checkUniquePortHost(kbs); err != nil {
-			return err
+		if checkErr := r.checkUniquePortHost(kbs); checkErr != nil {
+			return checkErr
 		}
-		if err := r.SyncKBAccessSettingsToCaddy(ctx, kbs); err != nil {
-			return fmt.Errorf("failed to sync kb access settings to caddy: %w", err)
+		if syncErr := r.SyncKBAccessSettingsToCaddy(ctx, kbs); syncErr != nil {
+			return fmt.Errorf("failed to sync kb access settings to caddy: %w", syncErr)
 		}
 		return nil
 	}); err != nil {

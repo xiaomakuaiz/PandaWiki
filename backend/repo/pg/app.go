@@ -58,8 +58,8 @@ func (r *AppRepository) GetOrCreateAppByKBIDAndType(ctx context.Context, kbID st
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// create app if kb is exist
-				if err := tx.Model(&domain.KnowledgeBase{}).Where("id = ?", kbID).First(&domain.KnowledgeBase{}).Error; err != nil {
-					return err
+				if kbErr := tx.Model(&domain.KnowledgeBase{}).Where("id = ?", kbID).First(&domain.KnowledgeBase{}).Error; kbErr != nil {
+					return kbErr
 				}
 				app = &domain.App{
 					ID:   uuid.New().String(),

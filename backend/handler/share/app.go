@@ -183,9 +183,9 @@ func (h *ShareAppHandler) WechatHandlerOfficialAccount(c echo.Context) error {
 			go func(openID, content string) {
 				ctx := context.Background()
 				// send content to ai
-				result, err := h.usecase.GetWechatOfficialAccountResponse(ctx, officialAccount, kbID, openID, content)
-				if err != nil {
-					h.logger.Error("get wechat official account response failed", log.Error(err))
+				result, respErr := h.usecase.GetWechatOfficialAccountResponse(ctx, officialAccount, kbID, openID, content)
+				if respErr != nil {
+					h.logger.Error("get wechat official account response failed", log.Error(respErr))
 					return
 				}
 				// send response to user --> 需要开启客服消息权限

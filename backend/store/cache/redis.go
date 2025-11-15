@@ -32,8 +32,8 @@ func (cache *Cache) GetOrSet(ctx context.Context, key string, value interface{},
 	val, err := cache.Get(ctx, key).Result()
 	if err == redis.Nil {
 		// If not found, set the value
-		if err := cache.Set(ctx, key, value, expiration).Err(); err != nil {
-			return nil, err
+		if setErr := cache.Set(ctx, key, value, expiration).Err(); setErr != nil {
+			return nil, setErr
 		}
 		return value, nil
 	} else if err != nil {

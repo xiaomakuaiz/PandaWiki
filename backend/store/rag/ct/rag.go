@@ -108,11 +108,11 @@ func (s *CTRAG) UpsertRecords(ctx context.Context, datasetID string, nodeRelease
 			return "", fmt.Errorf("convert html to markdown failed: %w", err)
 		}
 	}
-	if _, err := tempFile.Write([]byte(markdown)); err != nil {
-		return "", fmt.Errorf("write temp file failed: %w", err)
+	if _, writeErr := tempFile.Write([]byte(markdown)); writeErr != nil {
+		return "", fmt.Errorf("write temp file failed: %w", writeErr)
 	}
-	if err := tempFile.Close(); err != nil {
-		return "", fmt.Errorf("close temp file failed: %w", err)
+	if closeErr := tempFile.Close(); closeErr != nil {
+		return "", fmt.Errorf("close temp file failed: %w", closeErr)
 	}
 	defer os.Remove(tempFile.Name())
 	docs, err := s.client.UploadDocumentsAndParse(ctx, datasetID, []string{tempFile.Name()}, groupIds, &rag.DocumentMetadata{

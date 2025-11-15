@@ -205,9 +205,9 @@ func (c *LarkClient) sendQACard(ctx context.Context, receiveIdType string, recei
 		},
 	}
 	if receiveIdType == "open_id" {
-		userinfo, err := c.GetUserInfo(ctx, receiveId)
-		if err != nil {
-			c.logger.Error("get user info failed", log.Error(err))
+		userinfo, getUserErr := c.GetUserInfo(ctx, receiveId)
+		if getUserErr != nil {
+			c.logger.Error("get user info failed", log.Error(getUserErr))
 		} else {
 			if userinfo.UserId != nil {
 				convInfo.UserInfo.UserID = *userinfo.UserId
@@ -222,9 +222,9 @@ func (c *LarkClient) sendQACard(ctx context.Context, receiveIdType string, recei
 		}
 		convInfo.UserInfo.From = domain.MessageFromPrivate
 	} else {
-		userinfo, err := c.GetUserInfo(ctx, additionalInfo)
-		if err != nil {
-			c.logger.Error("get chat info failed", log.Error(err))
+		userinfo, getChatErr := c.GetUserInfo(ctx, additionalInfo)
+		if getChatErr != nil {
+			c.logger.Error("get chat info failed", log.Error(getChatErr))
 		} else {
 			if userinfo.UserId != nil {
 				convInfo.UserInfo.UserID = *userinfo.UserId

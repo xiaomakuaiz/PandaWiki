@@ -56,8 +56,8 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipar
 	if err != nil {
 		return "", nil, err
 	}
-	if err := valid(zipReader); err != nil {
-		return "", nil, err
+	if validErr := valid(zipReader); validErr != nil {
+		return "", nil, validErr
 	}
 
 	// read ./path/to/content.opf
@@ -72,8 +72,8 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipar
 	}
 
 	// resolve resource file
-	if err := e.uploadFile(ctx, kbID, zipReader); err != nil {
-		return "", nil, err
+	if uploadErr := e.uploadFile(ctx, kbID, zipReader); uploadErr != nil {
+		return "", nil, uploadErr
 	}
 
 	conv := converter.NewConverter(
@@ -91,9 +91,9 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipar
 	for _, zipfile := range zipReader.File {
 		ext := strings.ToLower(filepath.Ext(zipfile.Name))
 		if ext == ".ncx" {
-			file, err := zipfile.Open()
-			if err != nil {
-				return "", nil, err
+			file, openErr := zipfile.Open()
+			if openErr != nil {
+				return "", nil, openErr
 			}
 			defer file.Close()
 			toc, err = ParseNCX(file)
@@ -101,18 +101,18 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipar
 				return "", nil, err
 			}
 		}
-		file, err := zipfile.Open()
-		if err != nil {
-			return "", nil, err
+		file, openFileErr := zipfile.Open()
+		if openFileErr != nil {
+			return "", nil, openFileErr
 		}
 		defer file.Close()
-		htmlStr, err := io.ReadAll(file)
-		if err != nil {
-			return "", nil, err
+		htmlStr, readErr := io.ReadAll(file)
+		if readErr != nil {
+			return "", nil, readErr
 		}
-		mdStr, err := conv.ConvertString((string(htmlStr)))
-		if err != nil {
-			return "", nil, err
+		mdStr, convErr := conv.ConvertString((string(htmlStr)))
+		if convErr != nil {
+			return "", nil, convErr
 		}
 		e.logger.Info("convert File", "file name", clearFileName(zipfile.Name))
 		res[clearFileName(zipfile.Name)] = bytes.NewBufferString(mdStr)
@@ -121,8 +121,8 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipar
 	result := bytes.NewBuffer(nil)
 	for _, href := range p.Guide.References {
 		if r, ok := res[clearFileName(href.Href)]; ok {
-			if _, err := io.Copy(result, r); err != nil {
-				return "", nil, err
+			if _, copyErr := io.Copy(result, r); copyErr != nil {
+				return "", nil, copyErr
 			}
 			result.WriteString("\n\n")
 		}
@@ -140,8 +140,8 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipar
 		e.logger.Debug("add File", "file name", clearFileName(e.resourcesIdMap[itemRef.IDRef].Href))
 		if r, ok := res[clearFileName(e.resourcesIdMap[itemRef.IDRef].Href)]; ok {
 			result.WriteString("<span id=" + title + "></span>\n\n")
-			if _, err := io.Copy(result, r); err != nil {
-				return "", nil, err
+			if _, copyResultErr := io.Copy(result, r); copyResultErr != nil {
+				return "", nil, copyResultErr
 			}
 			result.WriteString("\n\n")
 		}
