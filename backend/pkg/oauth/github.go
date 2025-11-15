@@ -112,7 +112,12 @@ func (c *Client) GetGithubPrimaryEmail(ctx context.Context, token *oauth2.Token)
 		Verified bool   `json:"verified"`
 	}
 
-	resp, err := client.Get(githubUserEmailURL)
+	req, err := http.NewRequestWithContext(ctx, "GET", githubUserEmailURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}

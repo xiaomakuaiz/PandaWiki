@@ -173,7 +173,13 @@ func (c *Client) GetAccessToken(ctx context.Context) (string, error) {
 	params.Set("corpid", c.corpID)
 	params.Set("corpsecret", c.oauthConfig.ClientSecret)
 
-	resp, err := c.httpClient.Get(fmt.Sprintf("%s?%s", TokenURL, params.Encode()))
+	url := fmt.Sprintf("%s?%s", TokenURL, params.Encode())
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to get access token: %w", err)
 	}
@@ -211,7 +217,12 @@ func (c *Client) GetUserInfoByCode(ctx context.Context, code string) (*UserDetai
 
 	c.logger.Debug("GetUserInfoByCode", log.Any("userInfoURL", userInfoURL))
 
-	resp, err := c.httpClient.Get(userInfoURL)
+	req, err := http.NewRequestWithContext(ctx, "GET", userInfoURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
@@ -243,7 +254,12 @@ func (c *Client) GetUserInfoByCode(ctx context.Context, code string) (*UserDetai
 
 	userDetailURL := fmt.Sprintf("%s?%s", UserDetailURL, detailParams.Encode())
 
-	detailResp, err := c.httpClient.Get(userDetailURL)
+	detailReq, err := http.NewRequestWithContext(ctx, "GET", userDetailURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create detail request: %w", err)
+	}
+
+	detailResp, err := c.httpClient.Do(detailReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user detail: %w", err)
 	}
@@ -275,7 +291,12 @@ func (c *Client) GetDepartmentList(ctx context.Context) (*DepartmentListResponse
 
 	departmentListURL := fmt.Sprintf("%s?%s", DepartmentListURL, params.Encode())
 
-	resp, err := c.httpClient.Get(departmentListURL)
+	req, err := http.NewRequestWithContext(ctx, "GET", departmentListURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get department list: %w", err)
 	}
@@ -316,7 +337,12 @@ func (c *Client) GetUserList(ctx context.Context, deptID string) (*UserListRespo
 
 	userListUrl := fmt.Sprintf("%s?%s", UserListUrl, params.Encode())
 
-	resp, err := c.httpClient.Get(userListUrl)
+	req, err := http.NewRequestWithContext(ctx, "GET", userListUrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user list: %w", err)
 	}

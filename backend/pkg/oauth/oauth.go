@@ -81,7 +81,12 @@ func (c *Client) GetUserInfo(ctx context.Context, code string) (*UserInfo, error
 		return nil, err
 	}
 	client := c.oauth.Client(ctx, token)
-	res, err := client.Get(c.config.UserInfoURL)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.config.UserInfoURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

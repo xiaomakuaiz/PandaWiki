@@ -2,6 +2,7 @@ package wechatservice
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -41,7 +42,14 @@ func CheckSessionState(token, extrenaluserid, kfId string) (int, error) {
 	}
 	// 获取状态信息
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/service_state/get?access_token=%s", token)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return 0, fmt.Errorf("创建请求失败: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("发送请求失败: %v", err)
 	}
@@ -82,7 +90,14 @@ func ChangeState(token, extrenaluserId, kfId string, state int, serviceId string
 	}
 	// 发送请求
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/service_state/trans?access_token=%s", token)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("创建请求失败: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("发送请求失败: %v", err)
 	}
@@ -123,8 +138,14 @@ func GetUserInfo(userid string, accessToken string) (*Customer, error) {
 		return nil, err
 	}
 	// post获取用户的消息信息
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +214,13 @@ func GetDefaultImageID(accessToken, ImageBase64 string) (string, error) {
 // upload media to wechat server from URL
 func UploadMediaFromURL(accessToken, fileURL string) (string, error) {
 	// 处理URL
-	resp, err := http.Get(fileURL)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", fileURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("下载图片失败: %w", err)
 	}
@@ -258,7 +285,7 @@ func uploadMediaToWechat(accessToken string, reader io.Reader, fileName string) 
 	}
 
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=%s&type=image", accessToken)
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, body)
 	if err != nil {
 		return "", err
 	}
@@ -299,7 +326,14 @@ func getMsgs(accessToken string, msg *WeixinUserAskMsg) (*MsgRet, error) {
 
 	jsonBody, _ := json.Marshal(msgBody)
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody)) // 得到对应的回复
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req) // 得到对应的回复
 	if err != nil {
 		return nil, err
 	}

@@ -95,7 +95,7 @@ func (c *Client) GetUserInfoByCode(ctx context.Context, code string, codeVerifie
 	}
 
 	client := c.oauthConfig.Client(ctx, token)
-	req, err := http.NewRequest("GET", UserInfoURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", UserInfoURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

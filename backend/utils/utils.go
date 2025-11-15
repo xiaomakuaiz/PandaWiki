@@ -42,7 +42,12 @@ func HTTPGet(url string) ([]byte, error) {
 		},
 	}
 
-	resp, err := client.Get(url)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request for %s: %v", url, err)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get %s: %v", url, err)
 	}
@@ -178,7 +183,13 @@ func UploadImage(ctx context.Context, minioClient *s3.MinioClient, imageURL stri
 	var data []byte
 	var contentType string
 	if strings.HasPrefix(imageURL, "http://") || strings.HasPrefix(imageURL, "https://") {
-		resp, err := http.Get(imageURL)
+		req, err := http.NewRequestWithContext(ctx, "GET", imageURL, nil)
+		if err != nil {
+			return "", fmt.Errorf("failed to create request: %v", err)
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch image: %v", err)
 		}

@@ -191,7 +191,7 @@ func (c *Client) GetAccessToken(ctx context.Context) (string, error) {
 }
 
 func (c *Client) GetUserInfoByCode(code string) (*UserInfo, error) {
-	req, err := http.NewRequest("GET", userInfoUrl, nil)
+	req, err := http.NewRequestWithContext(c.ctx, "GET", userInfoUrl, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GET request: %w", err)
 	}
@@ -238,7 +238,7 @@ func (c *Client) GetDepartmentList(ctx context.Context) (*DepartmentListRsp, err
 	params.Add("access_token", accessToken)
 	requestURL := fmt.Sprintf("%s?%s", DepartmentListUrl, params.Encode())
 
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -315,7 +315,7 @@ func (c *Client) GetUserList(ctx context.Context, deptID int) (*GetUserListResp,
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

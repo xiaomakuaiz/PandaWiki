@@ -185,7 +185,7 @@ func (c *Client) reportInstallation() error {
 	if err != nil {
 		return fmt.Errorf("marshal installation event: %w", err)
 	}
-	req, err := http.NewRequest("POST", c.baseURL, bytes.NewBuffer(eventEncryptedRaw))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", c.baseURL, bytes.NewBuffer(eventEncryptedRaw))
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}

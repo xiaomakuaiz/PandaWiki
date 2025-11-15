@@ -131,8 +131,14 @@ func (cfg *WechatConfig) SendURLToUser(touser, question, token, conversationID, 
 	}
 
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s", token)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(cfg.Ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return 0, "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, "", err
 	}
@@ -171,8 +177,14 @@ func (cfg *WechatConfig) SendResponseToUser(response string, touser string, toke
 	}
 
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s", token)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(cfg.Ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return 0, "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, "", err
 	}
@@ -252,7 +264,13 @@ func (cfg *WechatConfig) GetAccessToken() (string, error) {
 	// get AccessToken--请求微信客服token
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=%s&corpsecret=%s", cfg.CorpID, cfg.Secret)
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequestWithContext(cfg.Ctx, "GET", url, nil)
+	if err != nil {
+		return "", errors.New("create request failed")
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", errors.New("get wechatapp accesstoken failed")
 	}
@@ -284,9 +302,17 @@ func (cfg *WechatConfig) GetUserInfo(username string) (*UserInfo, error) {
 		return nil, err
 	}
 	// 请求获取用户的内容
-	resp, err := http.Get(fmt.Sprintf(
+	url := fmt.Sprintf(
 		"https://qyapi.weixin.qq.com/cgi-bin/user/get?access_token=%s&userid=%s",
-		accessToken, username))
+		accessToken, username)
+
+	req, err := http.NewRequestWithContext(cfg.Ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

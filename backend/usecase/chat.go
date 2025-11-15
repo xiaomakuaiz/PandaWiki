@@ -184,7 +184,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 				answer := "**您的问题包含敏感词, AI 无法回答您的问题。**"
 				eventCh <- domain.SSEEvent{Type: "error", Content: answer}
 				// save ai answer and set it err
-				if err := u.conversationUsecase.CreateChatConversationMessage(context.Background(), req.KBID, &domain.ConversationMessage{
+				if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
 					ID:             messageId,
 					ConversationID: req.ConversationID,
 					KBID:           req.KBID,

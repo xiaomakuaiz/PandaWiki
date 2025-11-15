@@ -250,7 +250,14 @@ func (cfg *WechatServiceConfig) SendResponseToKfTxt(userId string, openkfId stri
 func (cfg *WechatServiceConfig) SendMessage(jsonData []byte, token string) error {
 	// 发送消息给客服
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/send_msg?access_token=%s", token)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(cfg.Ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("create request failed: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("post to wechatservice failed: %w", err)
 	}
@@ -312,7 +319,13 @@ func (cfg *WechatServiceConfig) GetAccessToken() (string, error) {
 	// get AccessToken--请求微信客服token
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=%s&corpsecret=%s", cfg.CorpID, cfg.Secret)
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequestWithContext(cfg.Ctx, "GET", url, nil)
+	if err != nil {
+		return "", errors.New("create request failed")
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", errors.New("get wechatservice accesstoken failed")
 	}
@@ -346,7 +359,13 @@ func (cfg *WechatServiceConfig) UnmarshalMsg(decryptMsg []byte) (*WeixinUserAskM
 
 func (cfg *WechatServiceConfig) GetKfHumanList(token string, KfId string) (*HumanList, error) {
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/servicer/list?access_token=%s&open_kfid=%s", token, KfId)
-	resp, err := http.Get(url)
+	req, err := http.NewRequestWithContext(cfg.Ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -273,15 +273,16 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 		return err
 	}
 	tr := &http.Transport{
-		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", socketPath)
+		DialContext: func(dialCtx context.Context, _, _ string) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(dialCtx, "unix", socketPath)
 		},
 	}
 	client := &http.Client{
 		Transport: tr,
 		Timeout:   5 * time.Second,
 	}
-	req, err := http.NewRequest("POST", "http://unix/load", bytes.NewBuffer(newBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", "http://unix/load", bytes.NewBuffer(newBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

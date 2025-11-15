@@ -216,7 +216,7 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 		},
 	}
 	// 之前创建并且发送卡片消息，获取用户基本信息
-	userinfo, err := c.GetUserInfo(data.SenderStaffId)
+	userinfo, err := c.GetUserInfo(ctx, data.SenderStaffId)
 	if err != nil {
 		c.logger.Error("GetUserInfo failed", log.Error(err))
 	} else {
@@ -318,7 +318,7 @@ type UserDetails struct {
 }
 
 // 使用原始的http请求来获取用户的信息 - > 需要设置获取用户的权限功能：企业员工手机号信息和邮箱等个人信息、成员信息读权限
-func (c *DingTalkClient) GetUserInfo(userID string) (*UserDetailResponse, error) {
+func (c *DingTalkClient) GetUserInfo(ctx context.Context, userID string) (*UserDetailResponse, error) {
 	accessToken, err := c.GetAccessToken()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get access token while creating and delivering card: %w", err)
@@ -332,7 +332,7 @@ func (c *DingTalkClient) GetUserInfo(userID string) (*UserDetailResponse, error)
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		c.logger.Error("Failed to create HTTP request: %v", log.Error(err))
 		return nil, err
