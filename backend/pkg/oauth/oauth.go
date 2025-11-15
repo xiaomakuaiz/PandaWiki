@@ -71,12 +71,12 @@ func (c *Client) GetAuthorizeURL(state string) string {
 	return c.oauth.AuthCodeURL(state)
 }
 
-func (c *Client) GetUserInfo(code string) (*UserInfo, error) {
-	token, err := c.oauth.Exchange(c.ctx, code)
+func (c *Client) GetUserInfo(ctx context.Context, code string) (*UserInfo, error) {
+	token, err := c.oauth.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}
-	client := c.oauth.Client(c.ctx, token)
+	client := c.oauth.Client(ctx, token)
 	res, err := client.Get(c.config.UserInfoURL)
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (c *Client) GetUserInfo(code string) (*UserInfo, error) {
 
 	email := gjson.Get(jsonString, c.config.EmailField).String()
 	if email == "" && c.config.UserInfoURL == githubUserInfoURL {
-		email, err = c.GetGithubPrimaryEmail(token)
+		email, err = c.GetGithubPrimaryEmail(ctx, token)
 		if err != nil {
 			c.logger.Warn("GetGithubPrimaryEmail failed", log.Error(err))
 		}

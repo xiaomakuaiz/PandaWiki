@@ -52,7 +52,7 @@ func (u *AuthUsecase) GitHubCallback(ctx context.Context, req shareV1.GitHubCall
 		return nil, "", err
 	}
 
-	userInfo, err := githubClient.GetUserInfo(req.Code)
+	userInfo, err := githubClient.GetUserInfo(ctx, req.Code)
 	if err != nil {
 		return nil, "", err
 	}

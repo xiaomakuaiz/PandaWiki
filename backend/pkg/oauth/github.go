@@ -94,13 +94,13 @@ func NewGithubClient(ctx context.Context, logger *log.Logger, clientID, clientSe
 	}, nil
 }
 
-func (c *Client) GetGithubPrimaryEmail(token *oauth2.Token) (string, error) {
+func (c *Client) GetGithubPrimaryEmail(ctx context.Context, token *oauth2.Token) (string, error) {
 	var client *http.Client
 	if c.httpClient != nil {
-		ctx := context.WithValue(c.ctx, oauth2.HTTPClient, c.httpClient)
-		client = c.oauth.Client(ctx, token)
+		ctxWithClient := context.WithValue(ctx, oauth2.HTTPClient, c.httpClient)
+		client = c.oauth.Client(ctxWithClient, token)
 	} else {
-		client = c.oauth.Client(c.ctx, token)
+		client = c.oauth.Client(ctx, token)
 	}
 
 	type Email struct {

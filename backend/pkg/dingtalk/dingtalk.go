@@ -150,8 +150,7 @@ func (c *Client) GetAccessTokenByCode(code string) (string, error) {
 	return accessToken, nil
 }
 
-func (c *Client) GetAccessToken() (string, error) {
-	ctx := context.Background()
+func (c *Client) GetAccessToken(ctx context.Context) (string, error) {
 	cacheKey := fmt.Sprintf("dingtalk-access-token:%s", c.clientID)
 	cachedData, err := c.cache.Get(ctx, cacheKey).Result()
 	if err == nil && cachedData != "" {
@@ -226,8 +225,8 @@ func (c *Client) GetUserInfoByCode(code string) (*UserInfo, error) {
 	return &userInfo, nil
 }
 
-func (c *Client) GetDepartmentList() (*DepartmentListRsp, error) {
-	accessToken, err := c.GetAccessToken()
+func (c *Client) GetDepartmentList(ctx context.Context) (*DepartmentListRsp, error) {
+	accessToken, err := c.GetAccessToken(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -271,13 +270,13 @@ func (c *Client) GetDepartmentList() (*DepartmentListRsp, error) {
 	return &departmentListRsp, nil
 }
 
-func (c *Client) GetAllUserList(deptID int) ([]UserDetail, error) {
+func (c *Client) GetAllUserList(ctx context.Context, deptID int) ([]UserDetail, error) {
 	depth := 0
 	const maxDepth = 10
 
 	userList := make([]UserDetail, 0)
 	for depth < maxDepth {
-		resp, err := c.GetUserList(deptID)
+		resp, err := c.GetUserList(ctx, deptID)
 		if err != nil {
 			return nil, err
 		}
@@ -292,8 +291,8 @@ func (c *Client) GetAllUserList(deptID int) ([]UserDetail, error) {
 	return userList, nil
 }
 
-func (c *Client) GetUserList(deptID int) (*GetUserListResp, error) {
-	accessToken, err := c.GetAccessToken()
+func (c *Client) GetUserList(ctx context.Context, deptID int) (*GetUserListResp, error) {
+	accessToken, err := c.GetAccessToken(ctx)
 	if err != nil {
 		return nil, err
 	}

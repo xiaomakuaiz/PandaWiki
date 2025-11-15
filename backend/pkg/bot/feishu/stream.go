@@ -142,7 +142,7 @@ func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, rec
 	}
 	if receiveIdType == "open_id" {
 		// 获取用户的信息，只需要获取p2p的对话的类型的用户信息 - p2p对话
-		userinfo, err := c.GetUserInfo(receiveId)
+		userinfo, err := c.GetUserInfo(ctx, receiveId)
 		if err != nil {
 			c.logger.Error("get user info failed", log.Error(err))
 		} else {
@@ -160,7 +160,7 @@ func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, rec
 		convInfo.UserInfo.From = domain.MessageFromPrivate // 私聊
 	} else { // chat_id 中的userid
 		// 获取群聊的消息，用户如果是在群聊中@机器人，那么就获取的是群聊的消息
-		userinfo, err := c.GetUserInfo(additionalInfo)
+		userinfo, err := c.GetUserInfo(ctx, additionalInfo)
 		if err != nil {
 			c.logger.Error("get chat info failed", log.Error(err))
 		} else {
@@ -269,12 +269,12 @@ func (c *FeishuClient) Start() error {
 // 下面功能都是需要开启飞书对应的权限才可以获取到用户信息 -- 应用权限(否则获取不到对话用户的信息)
 
 // 飞书机器人获取用户信息，只是适用于单个用户
-func (c *FeishuClient) GetUserInfo(UserOpenId string) (*larkcontact.User, error) {
+func (c *FeishuClient) GetUserInfo(ctx context.Context, UserOpenId string) (*larkcontact.User, error) {
 	// 获取用户信息，根据用户的id
 	req := larkcontact.NewGetUserReqBuilder().UserId(UserOpenId).
 		UserIdType(`open_id`).DepartmentIdType(`open_department_id`).Build()
 	// 发起请求，获取用户消息
-	resp, err := c.client.Contact.User.Get(context.Background(), req)
+	resp, err := c.client.Contact.User.Get(ctx, req)
 	if err != nil {
 		c.logger.Error("failed to get user info", log.Error(err))
 		return nil, err

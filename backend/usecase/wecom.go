@@ -117,7 +117,7 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 			_, loaded := domain.ConversationManager.LoadOrStore(conversationID, state)
 			if !loaded {
 				go func() {
-					bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+					bgCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 					defer cancel()
 					eventCh, err := u.chatUsecase.Chat(bgCtx, &domain.ChatRequest{
 						Message:        req.Text.Content,

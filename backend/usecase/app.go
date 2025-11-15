@@ -74,11 +74,11 @@ func NewAppUsecase(
 	for _, app := range apps {
 		switch app.Type {
 		case domain.AppTypeDingTalkBot:
-			u.updateDingTalkBot(app)
+			u.updateDingTalkBot(context.Background(), app)
 		case domain.AppTypeFeishuBot:
-			u.updateFeishuBot(app)
+			u.updateFeishuBot(context.Background(), app)
 		case domain.AppTypeLarkBot:
-			u.updateLarkBot(app)
+			u.updateLarkBot(context.Background(), app)
 		case domain.AppTypeDisCordBot:
 			u.updateDisCordBot(app)
 		}
@@ -139,11 +139,11 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 		}
 		switch app.Type {
 		case domain.AppTypeDingTalkBot:
-			u.updateDingTalkBot(app)
+			u.updateDingTalkBot(ctx, app)
 		case domain.AppTypeFeishuBot:
-			u.updateFeishuBot(app)
+			u.updateFeishuBot(ctx, app)
 		case domain.AppTypeLarkBot:
-			u.updateLarkBot(app)
+			u.updateLarkBot(ctx, app)
 		case domain.AppTypeDisCordBot:
 			u.updateDisCordBot(app)
 		}
@@ -218,7 +218,7 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun
 	}
 }
 
-func (u *AppUsecase) updateFeishuBot(app *domain.App) {
+func (u *AppUsecase) updateFeishuBot(ctx context.Context, app *domain.App) {
 	u.feishuMutex.Lock()
 	defer u.feishuMutex.Unlock()
 
@@ -235,7 +235,7 @@ func (u *AppUsecase) updateFeishuBot(app *domain.App) {
 
 	getQA := u.getQAFunc(app.KBID, app.Type)
 
-	botCtx, cancel := context.WithCancel(context.Background())
+	botCtx, cancel := context.WithCancel(ctx)
 	feishuClient := feishu.NewFeishuClient(
 		botCtx,
 		cancel,
@@ -258,7 +258,7 @@ func (u *AppUsecase) updateFeishuBot(app *domain.App) {
 	u.feishuBots[app.ID] = feishuClient
 }
 
-func (u *AppUsecase) updateLarkBot(app *domain.App) {
+func (u *AppUsecase) updateLarkBot(ctx context.Context, app *domain.App) {
 	u.larkMutex.Lock()
 	defer u.larkMutex.Unlock()
 
@@ -275,7 +275,7 @@ func (u *AppUsecase) updateLarkBot(app *domain.App) {
 
 	getQA := u.getQAFunc(app.KBID, app.Type)
 
-	botCtx, cancel := context.WithCancel(context.Background())
+	botCtx, cancel := context.WithCancel(ctx)
 	larkClient, err := lark.NewLarkClient(
 		botCtx,
 		cancel,
@@ -304,7 +304,7 @@ func (u *AppUsecase) updateLarkBot(app *domain.App) {
 	u.larkBots[app.ID] = larkClient
 }
 
-func (u *AppUsecase) updateDingTalkBot(app *domain.App) {
+func (u *AppUsecase) updateDingTalkBot(ctx context.Context, app *domain.App) {
 	u.dingTalkMutex.Lock()
 	defer u.dingTalkMutex.Unlock()
 
@@ -321,7 +321,7 @@ func (u *AppUsecase) updateDingTalkBot(app *domain.App) {
 
 	getQA := u.getQAFunc(app.KBID, app.Type)
 
-	botCtx, cancel := context.WithCancel(context.Background())
+	botCtx, cancel := context.WithCancel(ctx)
 	dingTalkClient, err := dingtalk.NewDingTalkClient(
 		botCtx,
 		cancel,
