@@ -101,7 +101,9 @@ func (h *ShareCommentHandler) CreateComment(c echo.Context) error {
 	var userIDValue uint
 	userID := c.Get("user_id")
 	if userID != nil { // can find userinfo from auth
-		userIDValue = userID.(uint)
+		if val, ok := userID.(uint); ok {
+			userIDValue = val
+		}
 	}
 
 	var status = 1 // no moderate

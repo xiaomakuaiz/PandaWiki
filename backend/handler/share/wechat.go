@@ -122,7 +122,10 @@ func (h *ShareWechatHandler) GetWechatAnswer(c echo.Context) error {
 	}
 
 	// exit --> get message
-	state := val.(*domain.ConversationState)
+	state, ok := val.(*domain.ConversationState)
+	if !ok {
+		return h.NewResponseWithError(c, "invalid conversation state type", nil)
+	}
 	// 1. send question
 	if err := h.writeSSEEvent(c, domain.SSEEvent{Type: "question", Content: state.Question}); err != nil {
 		return err
