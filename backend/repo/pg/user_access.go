@@ -38,7 +38,11 @@ func (r *UserAccessRepository) UpdateAccessTime(userID string) {
 // GetAccessTime get user access time
 func (r *UserAccessRepository) GetAccessTime(userID string) (time.Time, bool) {
 	if value, ok := r.accessMap.Load(userID); ok {
-		return value.(time.Time), true
+		timestamp, ok := value.(time.Time)
+		if !ok {
+			return time.Time{}, false
+		}
+		return timestamp, true
 	}
 	return time.Time{}, false
 }
@@ -58,8 +62,14 @@ func (r *UserAccessRepository) syncToDatabase() {
 	// collect data to update
 	updates := make([]domain.UserAccessTime, 0)
 	r.accessMap.Range(func(key, value any) bool {
-		userID := key.(string)
-		timestamp := value.(time.Time)
+		userID, ok := key.(string)
+		if !ok {
+			return true
+		}
+		timestamp, ok := value.(time.Time)
+		if !ok {
+			return true
+		}
 		updates = append(updates, domain.UserAccessTime{
 			UserID:    userID,
 			Timestamp: timestamp,

@@ -73,7 +73,8 @@ func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, c
 			case <-ticker.C:
 				c.msgMap.Range(func(key, value any) bool {
 					// remove messageId if it is older than 5 minutes
-					if time.Now().Unix()-value.(int64) > 5*60 {
+					timestamp, ok := value.(int64)
+					if ok && time.Now().Unix()-timestamp > 5*60 {
 						c.msgMap.Delete(key)
 					}
 					return true

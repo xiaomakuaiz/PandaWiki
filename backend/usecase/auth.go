@@ -121,10 +121,16 @@ func (u *AuthUsecase) ValidateRedirectUrl(ctx context.Context, kbId, redirectUrl
 	if err != nil {
 		return false, err
 	}
-	redirectURL, _ := url.Parse(redirectUrl)
+	redirectURL, err := url.Parse(redirectUrl)
+	if err != nil {
+		return false, err
+	}
 
 	if kb.AccessSettings.BaseURL != "" {
-		baseUrl, _ := url.Parse(kb.AccessSettings.BaseURL)
+		baseUrl, err := url.Parse(kb.AccessSettings.BaseURL)
+		if err != nil {
+			return false, err
+		}
 		if baseUrl.Hostname() != redirectURL.Hostname() {
 			return false, nil
 		}
@@ -157,7 +163,10 @@ func (u *AuthUsecase) SaveNewSession(c echo.Context, auth *domain.Auth) error {
 	if s == nil {
 		return fmt.Errorf("failed to get session store")
 	}
-	store := s.(sessions.Store)
+	store, ok := s.(sessions.Store)
+	if !ok {
+		return fmt.Errorf("failed to get session store: invalid type")
+	}
 
 	newSess := sessions.NewSession(store, domain.SessionName)
 	newSess.IsNew = true

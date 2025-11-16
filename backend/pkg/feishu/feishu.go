@@ -54,7 +54,10 @@ type UserInfo struct {
 }
 
 func NewClient(ctx context.Context, logger *log.Logger, appID, appSecret, redirectURI string) (*Client, error) {
-	redirectURL, _ := url.Parse(redirectURI)
+	redirectURL, err := url.Parse(redirectURI)
+	if err != nil {
+		return nil, err
+	}
 	redirectURL.Path = callbackPath
 	redirectURI = redirectURL.String()
 

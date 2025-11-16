@@ -293,8 +293,12 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		r.logger.Error("failed to update caddy config", "error", string(body))
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			r.logger.Error("failed to read response body", "error", err)
+		} else {
+			r.logger.Error("failed to update caddy config", "error", string(body))
+		}
 		return domain.ErrSyncCaddyConfigFailed
 	}
 	return nil

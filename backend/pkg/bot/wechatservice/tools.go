@@ -18,8 +18,14 @@ import (
 
 // 读取 cursor，以客服账号的消息作为key，返回对应的cursor值
 func getCursor(openKfId string) string {
-	cursorValue, _ := KfCursors.Load(openKfId)
-	cursor, _ := cursorValue.(string)
+	cursorValue, ok := KfCursors.Load(openKfId)
+	if !ok {
+		return ""
+	}
+	cursor, ok := cursorValue.(string)
+	if !ok {
+		return ""
+	}
 	return cursor
 }
 
@@ -324,7 +330,10 @@ func getMsgs(ctx context.Context, accessToken string, msg *WeixinUserAskMsg) (*M
 		Cursor:      cursor,
 	}
 
-	jsonBody, _ := json.Marshal(msgBody)
+	jsonBody, err := json.Marshal(msgBody)
+	if err != nil {
+		return nil, err
+	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {

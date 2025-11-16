@@ -346,8 +346,14 @@ func (cfg *WechatConfig) UnmarshalMsg(decryptMsg []byte) (*ReceivedMessage, erro
 // answer set into conversation state buffer
 func (cfg *WechatConfig) SendQuestionToAI(conversationID string, wccontent chan string) {
 	// send message
-	val, _ := domain.ConversationManager.Load(conversationID)
-	state := val.(*domain.ConversationState)
+	val, ok := domain.ConversationManager.Load(conversationID)
+	if !ok {
+		return
+	}
+	state, ok := val.(*domain.ConversationState)
+	if !ok {
+		return
+	}
 	for content := range wccontent {
 		state.Mutex.Lock()
 		if state.IsVisited {

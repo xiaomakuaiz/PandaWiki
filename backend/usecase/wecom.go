@@ -138,11 +138,13 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 						u.logger.Error("failed to create chat", log.Error(chatErr))
 						// Clean up state
 						if val, ok := domain.ConversationManager.Load(conversationID); ok {
-							state := val.(*domain.ConversationState)
-							state.Mutex.Lock()
-							state.IsDone = true
-							state.Mutex.Unlock()
-							close(state.NotificationChan)
+							state, ok := val.(*domain.ConversationState)
+							if ok {
+								state.Mutex.Lock()
+								state.IsDone = true
+								state.Mutex.Unlock()
+								close(state.NotificationChan)
+							}
 						}
 						return
 					}
@@ -183,7 +185,15 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 			return resp, nil
 		}
 
-		state := val.(*domain.ConversationState)
+		state, ok := val.(*domain.ConversationState)
+		if !ok {
+			resp, err := wecomAIBotClient.MakeStreamResp(nonce, req.Stream.Id, "服务暂时不可用，请稍后重试", true)
+			if err != nil {
+				u.logger.Error("MakeStreamResp failed", log.Error(err))
+				return "", err
+			}
+			return resp, nil
+		}
 		state.Mutex.Lock()
 		content := state.Buffer.String()
 		state.Mutex.Unlock()
@@ -217,7 +227,11 @@ func (u *WecomUsecase) SendQuestionToAI(conversationID string, eventCh <-chan do
 		return
 	}
 
-	state := val.(*domain.ConversationState)
+	state, ok := val.(*domain.ConversationState)
+	if !ok {
+		u.logger.Error("invalid conversation state type", log.String("conversation_id", conversationID))
+		return
+	}
 	defer func() {
 		close(state.NotificationChan)
 		// 标记为完成，但不立即删除，让 stream 请求可以继续拉取
