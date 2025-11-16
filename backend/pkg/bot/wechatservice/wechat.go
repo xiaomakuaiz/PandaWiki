@@ -53,14 +53,14 @@ func (cfg *WechatServiceConfig) VerifyUrlWechatService(signature, timestamp, non
 	return decryptEchoStr, nil
 }
 
-func (cfg *WechatServiceConfig) Wechat(msg *WeixinUserAskMsg, getQA bot.GetQAFun) error {
+func (cfg *WechatServiceConfig) Wechat(ctx context.Context, msg *WeixinUserAskMsg, getQA bot.GetQAFun) error {
 	// 获取accesstoken 方便给用户发送消息
 	token, err := cfg.GetAccessToken()
 	if err != nil {
 		return err
 	}
 	// 主动拉去用户发送的消息
-	msgRet, err := getMsgs(token, msg)
+	msgRet, err := getMsgs(ctx, token, msg)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (cfg *WechatServiceConfig) Wechat(msg *WeixinUserAskMsg, getQA bot.GetQAFun
 		setCursor(msg.OpenKfId, msgRet.NextCursor)
 	}
 
-	err = cfg.Processmessage(msgRet, msg, getQA)
+	err = cfg.Processmessage(ctx, msgRet, msg, getQA)
 	if err != nil {
 		cfg.logger.Error("send to ai failed!")
 		return err
@@ -77,7 +77,7 @@ func (cfg *WechatServiceConfig) Wechat(msg *WeixinUserAskMsg, getQA bot.GetQAFun
 }
 
 // forwardToBackend
-func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUserAskMsg, GetQA bot.GetQAFun) error {
+func (cfg *WechatServiceConfig) Processmessage(ctx context.Context, msgRet *MsgRet, Kfmsg *WeixinUserAskMsg, GetQA bot.GetQAFun) error {
 	// err message
 	cfg.logger.Info("get user message", log.Int("msgRet.Errcode", msgRet.Errcode), log.String("msg.Errmsg", msgRet.Errmsg))
 
@@ -102,7 +102,7 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 		return err
 	}
 
-	state, err := CheckSessionState(token, userId, openkfId)
+	state, err := CheckSessionState(ctx, token, userId, openkfId)
 	if err != nil {
 		cfg.logger.Error("check session state failed", log.Error(err))
 		return err
@@ -125,7 +125,7 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 			// 遍历找到可以接待的员工
 			for _, servicer := range humanList.ServicerList {
 				if servicer.Status == 0 { // 可以接待
-					changeErr := ChangeState(token, userId, openkfId, 3, servicer.UserID)
+					changeErr := ChangeState(ctx, token, userId, openkfId, 3, servicer.UserID)
 					if changeErr != nil {
 						cfg.logger.Error("change state to human failed", log.Error(changeErr))
 						return changeErr
@@ -146,7 +146,7 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	}
 
 	// 获取用户的详细信息
-	customer, err := GetUserInfo(userId, token)
+	customer, err := GetUserInfo(ctx, userId, token)
 	if err != nil {
 		cfg.logger.Error("get user info failed", log.Error(err))
 	}
@@ -158,7 +158,7 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 		id = uuid.New()
 	}
 	conversationID := id.String()
-	wccontent, err := GetQA(cfg.Ctx, content, domain.ConversationInfo{UserInfo: domain.UserInfo{
+	wccontent, err := GetQA(ctx, content, domain.ConversationInfo{UserInfo: domain.UserInfo{
 		UserID:   customer.ExternalUserID, // 用户对话的id
 		NickName: customer.Nickname,       //用户微信的昵称
 		Avatar:   customer.Avatar,         // 用户微信的头像
@@ -168,7 +168,7 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 		return err
 	}
 	//2. get baseurl and image path
-	info, err := cfg.WeRepo.GetWechatStatic(cfg.Ctx, cfg.kbID, domain.AppTypeWeb)
+	info, err := cfg.WeRepo.GetWechatStatic(ctx, cfg.kbID, domain.AppTypeWeb)
 	if err != nil {
 		return err
 	}
@@ -185,26 +185,26 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 		go cfg.SendQuestionToAI(conversationID, wccontent)
 	}
 	// 3. second send url to user
-	return cfg.SendResponseToKfUrl(userId, openkfId, conversationID, token, content, info.BaseUrl, info.ImagePath)
+	return cfg.SendResponseToKfUrl(ctx, userId, openkfId, conversationID, token, content, info.BaseUrl, info.ImagePath)
 }
 
-func (cfg *WechatServiceConfig) SendResponseToKfUrl(userId, openkfId, conversationID, token, question, baseUrl, image string) error {
+func (cfg *WechatServiceConfig) SendResponseToKfUrl(ctx context.Context, userId, openkfId, conversationID, token, question, baseUrl, image string) error {
 	var imageId string
 	var err error
 	if image != "" && !strings.HasPrefix(image, "data:image/") { // user own image and not base64 image
-		imageId, err = GetUserImageID(token, fmt.Sprintf("%s%s", "http://panda-wiki-minio:9000", image))
+		imageId, err = GetUserImageID(ctx, token, fmt.Sprintf("%s%s", "http://panda-wiki-minio:9000", image))
 		if err != nil {
 			return err
 		}
 	} else if strings.HasPrefix(image, "data:image/") {
 		// 解析base64
-		imageId, err = GetDefaultImageID(token, image)
+		imageId, err = GetDefaultImageID(ctx, token, image)
 		if err != nil {
 			return err
 		}
 	} else {
 		// 解析base64 -> default image
-		imageId, err = GetDefaultImageID(token, domain.DefaultPandaWikiIconB64)
+		imageId, err = GetDefaultImageID(ctx, token, domain.DefaultPandaWikiIconB64)
 		if err != nil {
 			return err
 		}
