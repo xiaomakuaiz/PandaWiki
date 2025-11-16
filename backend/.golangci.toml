@@ -41,6 +41,12 @@ enable = ["shadow"]
 check-type-assertions = true  # a := b.(T) 也要检查错误
 check-blank = true            # _, err 这种也要被检查
 
+# revive：禁用 exported 注释规则
+[linters.settings.revive]
+[[linters.settings.revive.rules]]
+name = "exported"
+disabled = true
+
 ######################
 # 全局排除 / 特殊规则（v2 新写法）
 ######################
