@@ -14,7 +14,7 @@ import (
 
 const (
 	AuthURL      = "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
-	TokenURL     = "https://open.feishu.cn/open-apis/authen/v2/oauth/token"
+	TokenURL     = "https://open.feishu.cn/open-apis/authen/v2/oauth/token" //nolint:gosec // G101: Not a credential, just API endpoint URL
 	UserInfoURL  = "https://open.feishu.cn/open-apis/authen/v1/user_info"
 	callbackPath = "/share/pro/v1/openapi/feishu/callback"
 )
@@ -54,7 +54,10 @@ type UserInfo struct {
 }
 
 func NewClient(ctx context.Context, logger *log.Logger, appID, appSecret, redirectURI string) (*Client, error) {
-	redirectURL, _ := url.Parse(redirectURI)
+	redirectURL, err := url.Parse(redirectURI)
+	if err != nil {
+		return nil, err
+	}
 	redirectURL.Path = callbackPath
 	redirectURI = redirectURL.String()
 
@@ -95,7 +98,7 @@ func (c *Client) GetUserInfoByCode(ctx context.Context, code string, codeVerifie
 	}
 
 	client := c.oauthConfig.Client(ctx, token)
-	req, err := http.NewRequest("GET", UserInfoURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", UserInfoURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

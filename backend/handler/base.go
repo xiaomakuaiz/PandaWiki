@@ -26,14 +26,14 @@ type BaseHandler struct {
 	Captcha             *captcha.Captcha
 }
 
-func NewBaseHandler(echo *echo.Echo, logger *log.Logger, config *config.Config, v1Auth middleware.AuthMiddleware, shareAuthMiddleware *middleware.ShareAuthMiddleware, cap *captcha.Captcha) *BaseHandler {
+func NewBaseHandler(echo *echo.Echo, logger *log.Logger, config *config.Config, v1Auth middleware.AuthMiddleware, shareAuthMiddleware *middleware.ShareAuthMiddleware, captchaInstance *captcha.Captcha) *BaseHandler {
 	return &BaseHandler{
 		Router:              echo,
 		baseLogger:          logger.WithModule("http_base_handler"),
 		config:              config,
 		ShareAuthMiddleware: shareAuthMiddleware,
 		V1Auth:              v1Auth,
-		Captcha:             cap,
+		Captcha:             captchaInstance,
 	}
 }
 

@@ -91,8 +91,8 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 			return nil
 		}
 		// update node doc_id
-		if err := h.nodeRepo.UpdateNodeReleaseDocID(ctx, request.NodeReleaseID, docID); err != nil {
-			h.logger.Error("update node doc_id failed", log.String("node_id", request.NodeReleaseID), log.Error(err))
+		if updateErr := h.nodeRepo.UpdateNodeReleaseDocID(ctx, request.NodeReleaseID, docID); updateErr != nil {
+			h.logger.Error("update node doc_id failed", log.String("node_id", request.NodeReleaseID), log.Error(updateErr))
 			return nil
 		}
 		// delete old RAG records

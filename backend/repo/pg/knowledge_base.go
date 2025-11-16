@@ -268,17 +268,21 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	config := map[string]any{
 		"apps": apps,
 	}
-	newBody, _ := json.Marshal(config)
+	newBody, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
 	tr := &http.Transport{
-		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", socketPath)
+		DialContext: func(dialCtx context.Context, _, _ string) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(dialCtx, "unix", socketPath)
 		},
 	}
 	client := &http.Client{
 		Transport: tr,
 		Timeout:   5 * time.Second,
 	}
-	req, err := http.NewRequest("POST", "http://unix/load", bytes.NewBuffer(newBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", "http://unix/load", bytes.NewBuffer(newBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -287,9 +291,14 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		r.logger.Error("failed to update caddy config", "error", string(body))
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			r.logger.Error("failed to read response body", "error", err)
+		} else {
+			r.logger.Error("failed to update caddy config", "error", string(body))
+		}
 		return domain.ErrSyncCaddyConfigFailed
 	}
 	return nil
@@ -521,21 +530,21 @@ func (r *KnowledgeBaseRepository) UpdateKnowledgeBase(ctx context.Context, req *
 	}
 
 	if err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&domain.KnowledgeBase{}).Where("id = ?", req.ID).Updates(updateMap).Error; err != nil {
-			return err
+		if updateErr := tx.Model(&domain.KnowledgeBase{}).Where("id = ?", req.ID).Updates(updateMap).Error; updateErr != nil {
+			return updateErr
 		}
 		// get all kb list
 		var kbs []*domain.KnowledgeBaseListItem
-		if err := tx.Model(&domain.KnowledgeBase{}).
+		if findErr := tx.Model(&domain.KnowledgeBase{}).
 			Order("created_at ASC").
-			Find(&kbs).Error; err != nil {
-			return err
+			Find(&kbs).Error; findErr != nil {
+			return findErr
 		}
-		if err := r.checkUniquePortHost(kbs); err != nil {
-			return err
+		if checkErr := r.checkUniquePortHost(kbs); checkErr != nil {
+			return checkErr
 		}
-		if err := r.SyncKBAccessSettingsToCaddy(ctx, kbs); err != nil {
-			return fmt.Errorf("failed to sync kb access settings to caddy: %w", err)
+		if syncErr := r.SyncKBAccessSettingsToCaddy(ctx, kbs); syncErr != nil {
+			return fmt.Errorf("failed to sync kb access settings to caddy: %w", syncErr)
 		}
 		return nil
 	}); err != nil {

@@ -115,7 +115,7 @@ func NewClient(ctx context.Context, logger *log.Logger, config Config) (*Client,
 		config: &config,
 		httpClient: &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // G402: CAS server may use self-signed certificates
 			},
 		},
 	}, nil
@@ -145,7 +145,12 @@ func (c *Client) ValidateTicket(ticket, state string) (*UserInfo, error) {
 		log.String("url", fullURL),
 		log.String("version", c.config.Version))
 
-	resp, err := c.httpClient.Get(fullURL)
+	req, err := http.NewRequestWithContext(c.ctx, "GET", fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate ticket: %w", err)
 	}

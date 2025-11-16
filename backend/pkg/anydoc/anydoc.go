@@ -61,7 +61,7 @@ func NewClient(logger *log.Logger, mqConsumer mq.MQConsumer) (*Client, error) {
 		httpClient: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: true, //nolint:gosec // G402: Internal service communication, certificate validation not required
 				},
 			},
 		},

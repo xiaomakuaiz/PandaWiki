@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -33,13 +34,19 @@ func NewSessionMiddleware(logger *log.Logger, config *config.Config, cache *cach
 		return nil, err
 	}
 
+	secretKeyStr, ok := secretKey.(string)
+	if !ok {
+		logger.Error("session store secret key is not string")
+		return nil, fmt.Errorf("session store secret key is not string")
+	}
+
 	store, err := redistore.NewRediStore(
 		10,
 		"tcp",
 		config.Redis.Addr,
 		"",
 		config.Redis.Password,
-		[]byte(secretKey.(string)),
+		[]byte(secretKeyStr),
 	)
 
 	if err != nil {

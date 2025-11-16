@@ -10,7 +10,10 @@ import (
 )
 
 func TestDiscord(t *testing.T) {
-	cfg, _ := config.NewConfig()
+	cfg, err := config.NewConfig()
+	if err != nil {
+		t.Fatalf("failed to create config: %v", err)
+	}
 	log := log.NewLogger(cfg)
 	token := "token"
 	getQA := func(ctx context.Context, msg string, info domain.ConversationInfo, ConversationID string) (chan string, error) {
@@ -21,7 +24,10 @@ func TestDiscord(t *testing.T) {
 		}()
 		return contentCh, nil
 	}
-	c, _ := NewDiscordClient(log, token, getQA)
+	c, err := NewDiscordClient(log, token, getQA)
+	if err != nil {
+		t.Fatalf("Failed to create Discord client: %v", err)
+	}
 	if err := c.Start(); err != nil {
 		t.Errorf("Failed to start Discord client: %v", err)
 	}

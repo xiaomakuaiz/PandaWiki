@@ -120,7 +120,10 @@ func NewDingTalkClient(ctx context.Context, logger *log.Logger, clientId, client
 
 // GenerateAuthURL 生成钉钉授权URL
 func (c *Client) GenerateAuthURL(redirectURI string, state string) string {
-	redirectURL, _ := url.Parse(redirectURI)
+	redirectURL, err := url.Parse(redirectURI)
+	if err != nil {
+		return ""
+	}
 	redirectURL.Path = callbackPath
 	redirectURI = redirectURL.String()
 
@@ -150,8 +153,7 @@ func (c *Client) GetAccessTokenByCode(code string) (string, error) {
 	return accessToken, nil
 }
 
-func (c *Client) GetAccessToken() (string, error) {
-	ctx := context.Background()
+func (c *Client) GetAccessToken(ctx context.Context) (string, error) {
 	cacheKey := fmt.Sprintf("dingtalk-access-token:%s", c.clientID)
 	cachedData, err := c.cache.Get(ctx, cacheKey).Result()
 	if err == nil && cachedData != "" {
@@ -189,7 +191,7 @@ func (c *Client) GetAccessToken() (string, error) {
 }
 
 func (c *Client) GetUserInfoByCode(code string) (*UserInfo, error) {
-	req, err := http.NewRequest("GET", userInfoUrl, nil)
+	req, err := http.NewRequestWithContext(c.ctx, "GET", userInfoUrl, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GET request: %w", err)
 	}
@@ -226,8 +228,8 @@ func (c *Client) GetUserInfoByCode(code string) (*UserInfo, error) {
 	return &userInfo, nil
 }
 
-func (c *Client) GetDepartmentList() (*DepartmentListRsp, error) {
-	accessToken, err := c.GetAccessToken()
+func (c *Client) GetDepartmentList(ctx context.Context) (*DepartmentListRsp, error) {
+	accessToken, err := c.GetAccessToken(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +238,7 @@ func (c *Client) GetDepartmentList() (*DepartmentListRsp, error) {
 	params.Add("access_token", accessToken)
 	requestURL := fmt.Sprintf("%s?%s", DepartmentListUrl, params.Encode())
 
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -271,13 +273,13 @@ func (c *Client) GetDepartmentList() (*DepartmentListRsp, error) {
 	return &departmentListRsp, nil
 }
 
-func (c *Client) GetAllUserList(deptID int) ([]UserDetail, error) {
+func (c *Client) GetAllUserList(ctx context.Context, deptID int) ([]UserDetail, error) {
 	depth := 0
 	const maxDepth = 10
 
 	userList := make([]UserDetail, 0)
 	for depth < maxDepth {
-		resp, err := c.GetUserList(deptID)
+		resp, err := c.GetUserList(ctx, deptID)
 		if err != nil {
 			return nil, err
 		}
@@ -292,8 +294,8 @@ func (c *Client) GetAllUserList(deptID int) ([]UserDetail, error) {
 	return userList, nil
 }
 
-func (c *Client) GetUserList(deptID int) (*GetUserListResp, error) {
-	accessToken, err := c.GetAccessToken()
+func (c *Client) GetUserList(ctx context.Context, deptID int) (*GetUserListResp, error) {
+	accessToken, err := c.GetAccessToken(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +315,7 @@ func (c *Client) GetUserList(deptID int) (*GetUserListResp, error) {
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

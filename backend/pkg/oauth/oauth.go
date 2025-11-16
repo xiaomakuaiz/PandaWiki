@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -46,7 +47,10 @@ type UserInfo struct {
 
 // NewClient 创建OAuth客户端
 func NewClient(ctx context.Context, logger *log.Logger, config Config) (*Client, error) {
-	redirectURL, _ := url.Parse(config.RedirectURI)
+	redirectURL, err := url.Parse(config.RedirectURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse redirect URI: %w", err)
+	}
 	redirectURL.Path = callbackPath
 	redirectURI := redirectURL.String()
 
@@ -71,13 +75,18 @@ func (c *Client) GetAuthorizeURL(state string) string {
 	return c.oauth.AuthCodeURL(state)
 }
 
-func (c *Client) GetUserInfo(code string) (*UserInfo, error) {
-	token, err := c.oauth.Exchange(c.ctx, code)
+func (c *Client) GetUserInfo(ctx context.Context, code string) (*UserInfo, error) {
+	token, err := c.oauth.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}
-	client := c.oauth.Client(c.ctx, token)
-	res, err := client.Get(c.config.UserInfoURL)
+	client := c.oauth.Client(ctx, token)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.config.UserInfoURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +103,7 @@ func (c *Client) GetUserInfo(code string) (*UserInfo, error) {
 
 	email := gjson.Get(jsonString, c.config.EmailField).String()
 	if email == "" && c.config.UserInfoURL == githubUserInfoURL {
-		email, err = c.GetGithubPrimaryEmail(token)
+		email, err = c.GetGithubPrimaryEmail(ctx, token)
 		if err != nil {
 			c.logger.Warn("GetGithubPrimaryEmail failed", log.Error(err))
 		}

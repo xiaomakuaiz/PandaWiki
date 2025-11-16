@@ -37,12 +37,17 @@ func HTTPGet(url string) ([]byte, error) {
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, //nolint:gosec // G402: General utility function, may need to access servers with self-signed certificates
 			},
 		},
 	}
 
-	resp, err := client.Get(url)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request for %s: %v", url, err)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get %s: %v", url, err)
 	}
@@ -60,9 +65,8 @@ func DecodeBytes(data []byte) string {
 	// try different encodings
 	encodings := []string{"utf-8", "gbk", "gb2312", "big5"}
 	for _, enc := range encodings {
-		if decoded, err := decode(data, enc); err == nil {
-			return decoded
-		}
+		decoded := decode(data, enc)
+		return decoded
 	}
 	return string(data)
 }
@@ -113,11 +117,11 @@ func URLRemovePath(rawURL string) (string, error) {
 	return parsedURL.String(), nil
 }
 
-// decode decode bytes with specified encoding
-func decode(data []byte, encoding string) (string, error) {
+// decode decode bytes to string
+func decode(data []byte, _ string) string {
 	// need to implement encoding conversion based on actual needs
 	// use golang.org/x/text/encoding package
-	return string(data), nil
+	return string(data)
 }
 
 // GetHeaderMap get header map
@@ -178,7 +182,13 @@ func UploadImage(ctx context.Context, minioClient *s3.MinioClient, imageURL stri
 	var data []byte
 	var contentType string
 	if strings.HasPrefix(imageURL, "http://") || strings.HasPrefix(imageURL, "https://") {
-		resp, err := http.Get(imageURL)
+		req, err := http.NewRequestWithContext(ctx, "GET", imageURL, nil)
+		if err != nil {
+			return "", fmt.Errorf("failed to create request: %v", err)
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch image: %v", err)
 		}
@@ -200,7 +210,7 @@ func UploadImage(ctx context.Context, minioClient *s3.MinioClient, imageURL stri
 	} else {
 		// 从本地文件系统读取图片
 		var err error
-		data, err = os.ReadFile(imageURL)
+		data, err = os.ReadFile(imageURL) //nolint:gosec // G304: imageURL is from trusted internal source for file upload
 		if err != nil {
 			return "", fmt.Errorf("failed to read image file: %v", err)
 		}

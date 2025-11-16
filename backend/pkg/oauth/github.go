@@ -17,7 +17,7 @@ import (
 
 const (
 	githubAuthorizeURL    = "https://github.com/login/oauth/authorize"
-	githubTokenURL        = "https://github.com/login/oauth/access_token"
+	githubTokenURL        = "https://github.com/login/oauth/access_token" //nolint:gosec // G101: Not a credential, just API endpoint URL
 	githubUserInfoURL     = "https://api.github.com/user"
 	githubUserEmailURL    = "https://api.github.com/user/emails"
 	githubCallbackPathPro = "/share/pro/v1/openapi/github/callback"
@@ -30,7 +30,10 @@ func NewGithubClient(ctx context.Context, logger *log.Logger, clientID, clientSe
 		return nil, fmt.Errorf("failed to retrieve license edition from context")
 	}
 
-	redirectURL, _ := url.Parse(redirectURI)
+	redirectURL, err := url.Parse(redirectURI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse redirect URI: %w", err)
+	}
 	redirectURL.Path = githubCallbackPath
 
 	if licenseEdition > consts.LicenseEditionFree {
@@ -94,13 +97,13 @@ func NewGithubClient(ctx context.Context, logger *log.Logger, clientID, clientSe
 	}, nil
 }
 
-func (c *Client) GetGithubPrimaryEmail(token *oauth2.Token) (string, error) {
+func (c *Client) GetGithubPrimaryEmail(ctx context.Context, token *oauth2.Token) (string, error) {
 	var client *http.Client
 	if c.httpClient != nil {
-		ctx := context.WithValue(c.ctx, oauth2.HTTPClient, c.httpClient)
-		client = c.oauth.Client(ctx, token)
+		ctxWithClient := context.WithValue(ctx, oauth2.HTTPClient, c.httpClient)
+		client = c.oauth.Client(ctxWithClient, token)
 	} else {
-		client = c.oauth.Client(c.ctx, token)
+		client = c.oauth.Client(ctx, token)
 	}
 
 	type Email struct {
@@ -109,7 +112,12 @@ func (c *Client) GetGithubPrimaryEmail(token *oauth2.Token) (string, error) {
 		Verified bool   `json:"verified"`
 	}
 
-	resp, err := client.Get(githubUserEmailURL)
+	req, err := http.NewRequestWithContext(ctx, "GET", githubUserEmailURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}

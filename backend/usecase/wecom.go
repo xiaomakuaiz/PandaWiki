@@ -83,20 +83,20 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 	switch req.Msgtype {
 	case "text":
 		// Generate conversation ID
-		id, err := uuid.NewV7()
-		if err != nil {
-			u.logger.Error("failed to generate conversation uuid", log.Error(err))
+		id, uuidErr := uuid.NewV7()
+		if uuidErr != nil {
+			u.logger.Error("failed to generate conversation uuid", log.Error(uuidErr))
 			id = uuid.New()
 		}
 		conversationID := id.String()
 
 		redisKey := fmt.Sprintf("wecom-aibot-%s", req.Msgid)
-		if err := u.cache.SetNX(ctx, redisKey, conversationID, 15*time.Minute).Err(); err != nil {
+		if cacheErr := u.cache.SetNX(ctx, redisKey, conversationID, 15*time.Minute).Err(); cacheErr != nil {
 			u.logger.Error("failed to store conversation mapping in cache",
 				log.String("redis_key", redisKey),
 				log.String("conversation_id", conversationID),
-				log.Error(err))
-			return "", fmt.Errorf("cache operation failed: %w", err)
+				log.Error(cacheErr))
+			return "", fmt.Errorf("cache operation failed: %w", cacheErr)
 		}
 
 		// Get auth user for WeChat Work bot
@@ -117,9 +117,9 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 			_, loaded := domain.ConversationManager.LoadOrStore(conversationID, state)
 			if !loaded {
 				go func() {
-					bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+					bgCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 					defer cancel()
-					eventCh, err := u.chatUsecase.Chat(bgCtx, &domain.ChatRequest{
+					eventCh, chatErr := u.chatUsecase.Chat(bgCtx, &domain.ChatRequest{
 						Message:        req.Text.Content,
 						KBID:           kbID,
 						AppType:        domain.AppTypeWecomAIBot,
@@ -134,15 +134,17 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 							},
 						},
 					})
-					if err != nil {
-						u.logger.Error("failed to create chat", log.Error(err))
+					if chatErr != nil {
+						u.logger.Error("failed to create chat", log.Error(chatErr))
 						// Clean up state
 						if val, ok := domain.ConversationManager.Load(conversationID); ok {
-							state := val.(*domain.ConversationState)
-							state.Mutex.Lock()
-							state.IsDone = true
-							state.Mutex.Unlock()
-							close(state.NotificationChan)
+							state, ok := val.(*domain.ConversationState)
+							if ok {
+								state.Mutex.Lock()
+								state.IsDone = true
+								state.Mutex.Unlock()
+								close(state.NotificationChan)
+							}
 						}
 						return
 					}
@@ -163,12 +165,12 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 
 		redisKey := fmt.Sprintf("wecom-aibot-%s", req.Stream.Id)
 
-		conversationId, err := u.cache.Get(ctx, redisKey).Result()
-		if err != nil || conversationId == "" {
-			resp, err := wecomAIBotClient.MakeStreamResp(nonce, req.Stream.Id, "服务内部异常，请稍后重试", true)
-			if err != nil {
-				u.logger.Error("MakeStreamResp failed", log.Error(err))
-				return "", err
+		conversationId, getErr := u.cache.Get(ctx, redisKey).Result()
+		if getErr != nil || conversationId == "" {
+			resp, respErr := wecomAIBotClient.MakeStreamResp(nonce, req.Stream.Id, "服务内部异常，请稍后重试", true)
+			if respErr != nil {
+				u.logger.Error("MakeStreamResp failed", log.Error(respErr))
+				return "", respErr
 			}
 			return resp, nil
 		}
@@ -183,7 +185,15 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 			return resp, nil
 		}
 
-		state := val.(*domain.ConversationState)
+		state, ok := val.(*domain.ConversationState)
+		if !ok {
+			resp, err := wecomAIBotClient.MakeStreamResp(nonce, req.Stream.Id, "服务暂时不可用，请稍后重试", true)
+			if err != nil {
+				u.logger.Error("MakeStreamResp failed", log.Error(err))
+				return "", err
+			}
+			return resp, nil
+		}
 		state.Mutex.Lock()
 		content := state.Buffer.String()
 		state.Mutex.Unlock()
@@ -217,7 +227,11 @@ func (u *WecomUsecase) SendQuestionToAI(conversationID string, eventCh <-chan do
 		return
 	}
 
-	state := val.(*domain.ConversationState)
+	state, ok := val.(*domain.ConversationState)
+	if !ok {
+		u.logger.Error("invalid conversation state type", log.String("conversation_id", conversationID))
+		return
+	}
 	defer func() {
 		close(state.NotificationChan)
 		// 标记为完成，但不立即删除，让 stream 请求可以继续拉取

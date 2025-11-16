@@ -65,7 +65,7 @@ func (r *ConversationRepository) GetConversationList(ctx context.Context, reques
 		Find(&conversations).Error; err != nil {
 		return nil, 0, err
 	}
-	return conversations, uint64(count), nil
+	return conversations, uint64(count), nil //nolint:gosec // G115: Safe conversion, count is database count within uint64 range
 }
 
 func (r *ConversationRepository) GetConversationDetail(ctx context.Context, kbID, conversationID string) (*domain.ConversationDetailResp, error) {

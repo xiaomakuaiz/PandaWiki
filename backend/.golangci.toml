@@ -1,10 +1,84 @@
 version = "2"
 
-linters.default = "standard"
+######################
+# 运行相关
+######################
+[run]
+# 超时时间，避免在 CI 里卡死
+timeout = "5m"
+# 连测试代码一起扫（gosec 下面会单独排除）
+tests = true
 
+######################
+# Linter 开关
+######################
+[linters]
+# 官方推荐集合：维护中 + 误报相对少
+preset = "recommended"
+
+# 在 recommended 基础上，针对 Web 服务额外打开的
+enable = [
+  "gosec",        # 安全检查（SQL 注入、命令执行等）
+  "predeclared",  # 预声明标识符遮蔽（len/error 等）
+  "revive",       # 更现代的风格/规范检查
+  "unparam",      # 未使用参数（RPC/handler 很容易写多）
+  "bodyclose",    # HTTP Response Body 必须关闭
+  "noctx",        # 外部调用缺少 context.Context
+  "contextcheck", # 使用错误的 context（非继承）
+  "errname",      # error 命名规范（服务端项目很常见）
+]
+
+######################
+# 各 linter 细节配置
+######################
+
+# govet + shadow 变量遮蔽检查（v2 新写法）
+[linters.settings.govet]
+enable = ["shadow"]
+
+# errcheck：对错误检查更严格一点
+[linters.settings.errcheck]
+check-type-assertions = true  # a := b.(T) 也要检查错误
+check-blank = true            # _, err 这种也要被检查
+
+# revive：禁用 exported 注释规则
+[linters.settings.revive]
+[[linters.settings.revive.rules]]
+name = "exported"
+disabled = true
+
+######################
+# 全局排除 / 特殊规则（v2 新写法）
+######################
+[linters.exclusions]
+# 不扫的目录（按需要增减）
+paths = [
+  "vendor",
+  "third_party",
+  "node_modules",
+  "tmp",
+  "dist",
+  "docs",
+  "mocks",
+]
+
+# 严格识别生成文件（一般不用改）
+generated = "strict"
+
+# 1. 测试文件不跑 gosec（通常没必要这么严）
 [[linters.exclusions.rules]]
-linters = [ "errcheck" ]
+linters = ["gosec"]
+path = "(.+)_test\\.go"
+
+# 2. 对 defer 调用放宽 errcheck（defer f.Close() 很常见）
+[[linters.exclusions.rules]]
+linters = ["errcheck"]
 source = "^\\s*defer\\s+"
 
+######################
+# 格式化
+######################
 [formatters]
-enable = ["gofmt", "goimports"]
+# goimports 已经包含 gofmt 能力
+enable = ["goimports"]
+

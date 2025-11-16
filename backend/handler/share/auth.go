@@ -121,7 +121,10 @@ func (h *ShareAuthHandler) AuthLoginSimple(c echo.Context) error {
 	if s == nil {
 		return h.NewResponseWithError(c, "get session cache key failed", nil)
 	}
-	store := s.(sessions.Store)
+	store, ok := s.(sessions.Store)
+	if !ok {
+		return h.NewResponseWithError(c, "invalid session store type", nil)
+	}
 
 	newSess := sessions.NewSession(store, domain.SessionName)
 	newSess.IsNew = true

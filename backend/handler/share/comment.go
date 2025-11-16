@@ -101,7 +101,9 @@ func (h *ShareCommentHandler) CreateComment(c echo.Context) error {
 	var userIDValue uint
 	userID := c.Get("user_id")
 	if userID != nil { // can find userinfo from auth
-		userIDValue = userID.(uint)
+		if val, ok := userID.(uint); ok {
+			userIDValue = val
+		}
 	}
 
 	var status = 1 // no moderate
@@ -109,7 +111,7 @@ func (h *ShareCommentHandler) CreateComment(c echo.Context) error {
 	if appInfo.Settings.WebAppCommentSettings.ModerationEnable {
 		status = 0
 	}
-	commentStatus := domain.CommentStatus(status)
+	commentStatus := domain.CommentStatus(status) //nolint:gosec // G115: Safe conversion, status is always 0 or 1
 
 	// 插入到数据库中
 	commentID, err := h.usecase.CreateComment(ctx, &req, kbID, remoteIP, commentStatus, userIDValue)

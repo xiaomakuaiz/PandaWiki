@@ -92,7 +92,8 @@ func NewLarkClient(ctx context.Context, cancel context.CancelFunc, clientID, cli
 			case <-ticker.C:
 				c.msgMap.Range(func(key, value any) bool {
 					// remove messageId if it is older than 5 minutes
-					if time.Now().Unix()-value.(int64) > 5*60 {
+					timestamp, ok := value.(int64)
+					if ok && time.Now().Unix()-timestamp > 5*60 {
 						c.msgMap.Delete(key)
 					}
 					return true
@@ -128,14 +129,14 @@ func (c *LarkClient) setupEventHandler() {
 				}
 				// Replace mention placeholders with actual user names
 				questionText := c.replaceMentions(message.Text, event.Event.Message.Mentions)
-				go c.sendQACard(c.ctx, "chat_id", *event.Event.Message.ChatId, questionText, *event.Event.Sender.SenderId.OpenId)
+				go c.sendQACard(ctx, "chat_id", *event.Event.Message.ChatId, questionText, *event.Event.Sender.SenderId.OpenId)
 			case "p2p":
 				var message Message
 				if err := json.Unmarshal([]byte(*event.Event.Message.Content), &message); err != nil {
 					c.logger.Error("failed to unmarshal message", log.Error(err))
 					return nil
 				}
-				go c.sendQACard(c.ctx, "open_id", *event.Event.Sender.SenderId.OpenId, message.Text, *event.Event.Message.ChatId)
+				go c.sendQACard(ctx, "open_id", *event.Event.Sender.SenderId.OpenId, message.Text, *event.Event.Message.ChatId)
 			default:
 				c.logger.Warn("unsupported chat type", log.String("chat_type", *event.Event.Message.ChatType))
 			}
@@ -205,9 +206,9 @@ func (c *LarkClient) sendQACard(ctx context.Context, receiveIdType string, recei
 		},
 	}
 	if receiveIdType == "open_id" {
-		userinfo, err := c.GetUserInfo(receiveId)
-		if err != nil {
-			c.logger.Error("get user info failed", log.Error(err))
+		userinfo, getUserErr := c.GetUserInfo(ctx, receiveId)
+		if getUserErr != nil {
+			c.logger.Error("get user info failed", log.Error(getUserErr))
 		} else {
 			if userinfo.UserId != nil {
 				convInfo.UserInfo.UserID = *userinfo.UserId
@@ -222,9 +223,9 @@ func (c *LarkClient) sendQACard(ctx context.Context, receiveIdType string, recei
 		}
 		convInfo.UserInfo.From = domain.MessageFromPrivate
 	} else {
-		userinfo, err := c.GetUserInfo(additionalInfo)
-		if err != nil {
-			c.logger.Error("get chat info failed", log.Error(err))
+		userinfo, getChatErr := c.GetUserInfo(ctx, additionalInfo)
+		if getChatErr != nil {
+			c.logger.Error("get chat info failed", log.Error(getChatErr))
 		} else {
 			if userinfo.UserId != nil {
 				convInfo.UserInfo.UserID = *userinfo.UserId
@@ -310,10 +311,10 @@ func (c *LarkClient) Start() error {
 	return nil
 }
 
-func (c *LarkClient) GetUserInfo(UserOpenId string) (*larkcontact.User, error) {
+func (c *LarkClient) GetUserInfo(ctx context.Context, UserOpenId string) (*larkcontact.User, error) {
 	req := larkcontact.NewGetUserReqBuilder().UserId(UserOpenId).
 		UserIdType(`open_id`).DepartmentIdType(`open_department_id`).Build()
-	resp, err := c.client.Contact.User.Get(context.Background(), req)
+	resp, err := c.client.Contact.User.Get(ctx, req)
 	if err != nil {
 		c.logger.Error("failed to get user info", log.Error(err))
 		return nil, err

@@ -189,7 +189,7 @@ func (u *KnowledgeBaseUsecase) GetKBReleaseList(ctx context.Context, req *domain
 		return nil, err
 	}
 
-	return domain.NewPaginatedResult(releases, uint64(total)), nil
+	return domain.NewPaginatedResult(releases, uint64(total)), nil //nolint:gosec // G115: Safe conversion, total is database count within uint64 range
 }
 
 func (u *KnowledgeBaseUsecase) GetKBUserList(ctx context.Context, req v1.KBUserListReq) ([]v1.KBUserListItemResp, error) {

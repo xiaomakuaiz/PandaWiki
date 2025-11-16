@@ -81,13 +81,13 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 
 	// ensure dir is exists
 	dir := filepath.Dir(machineIDFile)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", fmt.Errorf("failed to create machine ID directory: %w", err)
 	}
 
 	// create lock file to prevent concurrent access
 	lockFile := machineIDFile + ".lock"
-	lock, err := os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	lock, err := os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		if os.IsExist(err) {
 			// if lock file already exists, wait and try again
@@ -115,20 +115,20 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 	id := uuid.New().String()
 
 	// write machine ID to file and ensure data is written to disk
-	if err := os.WriteFile(machineIDFile, []byte(id), 0o644); err != nil {
+	if err := os.WriteFile(machineIDFile, []byte(id), 0o600); err != nil {
 		return "", fmt.Errorf("failed to write machine ID file: %w", err)
 	}
 
 	// sync file to ensure data is written to disk
-	if file, err := os.OpenFile(machineIDFile, os.O_RDWR, 0o644); err == nil {
-		if err := file.Sync(); err != nil {
-			if err := file.Close(); err != nil {
-				c.logger.Error("failed to close machine ID file after write", log.Error(err))
+	if file, openErr := os.OpenFile(machineIDFile, os.O_RDWR, 0o600); openErr == nil {
+		if syncErr := file.Sync(); syncErr != nil {
+			if closeErr := file.Close(); closeErr != nil {
+				c.logger.Error("failed to close machine ID file after write", log.Error(closeErr))
 			}
-			return "", fmt.Errorf("failed to sync machine ID file: %w", err)
+			return "", fmt.Errorf("failed to sync machine ID file: %w", syncErr)
 		}
-		if err := file.Close(); err != nil {
-			c.logger.Error("failed to close machine ID file after sync", log.Error(err))
+		if closeErr := file.Close(); closeErr != nil {
+			c.logger.Error("failed to close machine ID file after sync", log.Error(closeErr))
 		}
 	}
 	return id, nil
@@ -185,7 +185,7 @@ func (c *Client) reportInstallation() error {
 	if err != nil {
 		return fmt.Errorf("marshal installation event: %w", err)
 	}
-	req, err := http.NewRequest("POST", c.baseURL, bytes.NewBuffer(eventEncryptedRaw))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", c.baseURL, bytes.NewBuffer(eventEncryptedRaw))
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}

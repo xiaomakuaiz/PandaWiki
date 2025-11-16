@@ -41,10 +41,10 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// check count
 		var count int64
-		if err := tx.Model(&domain.Node{}).
+		if countErr := tx.Model(&domain.Node{}).
 			Where("kb_id = ?", req.KBID).
-			Count(&count).Error; err != nil {
-			return err
+			Count(&count).Error; countErr != nil {
+			return countErr
 		}
 		if count >= int64(req.MaxNode) {
 			return domain.ErrMaxNodeLimitReached
@@ -60,10 +60,10 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 			query = query.Where("parent_id = ?", req.ParentID)
 		}
 
-		if err := query.
+		if scanErr := query.
 			Select("COALESCE(MAX(position::float), 0)").
-			Scan(&maxPos).Error; err != nil {
-			return err
+			Scan(&maxPos).Error; scanErr != nil {
+			return scanErr
 		}
 
 		var newPos float64
@@ -75,8 +75,8 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 		} else { // default the last
 			newPos = maxPos + (domain.MaxPosition-maxPos)/2.0
 			if newPos-maxPos < domain.MinPositionGap {
-				if err := r.reorderPositionsByParentID(tx, req.KBID, req.ParentID); err != nil {
-					return err
+				if reorderErr := r.reorderPositionsByParentID(tx, req.KBID, req.ParentID); reorderErr != nil {
+					return reorderErr
 				}
 			}
 		}

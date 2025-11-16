@@ -248,7 +248,7 @@ func (u *ConversationUsecase) GetMessageList(ctx context.Context, req *domain.Me
 		return message
 	})
 
-	return domain.NewPaginatedResult(messageList, uint64(total)), nil
+	return domain.NewPaginatedResult(messageList, uint64(total)), nil //nolint:gosec // G115: Safe conversion, total is database count within uint64 range
 }
 
 func (u *ConversationUsecase) GetMessageDetail(ctx context.Context, kbId, messageId string) (*domain.ConversationMessage, error) {

@@ -55,7 +55,9 @@ func (h *ShareStatHandler) RecordPage(c echo.Context) error {
 	var userIDValue uint
 	userID := c.Get("user_id")
 	if userID != nil { // can find userinfo from auth
-		userIDValue = userID.(uint)
+		if val, ok := userID.(uint); ok {
+			userIDValue = val
+		}
 	}
 
 	ua := c.Request().UserAgent()

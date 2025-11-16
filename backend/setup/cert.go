@@ -68,8 +68,8 @@ func createSelfSignedCerts() error {
 	}
 
 	// ensure dir /app/etc/nginx/ssl exists
-	if err := os.MkdirAll("/app/etc/nginx/ssl", 0o755); err != nil {
-		return fmt.Errorf("failed to create ssl dir: %v", err)
+	if mkdirErr := os.MkdirAll("/app/etc/nginx/ssl", 0o750); mkdirErr != nil {
+		return fmt.Errorf("failed to create ssl dir: %v", mkdirErr)
 	}
 
 	// Write certificate file with appropriate permissions
@@ -80,8 +80,8 @@ func createSelfSignedCerts() error {
 	defer certFile.Close()
 
 	// Set certificate file permissions to 644 (readable by all)
-	if err := certFile.Chmod(0o644); err != nil {
-		return fmt.Errorf("failed to set cert file permissions: %v", err)
+	if chmodErr := certFile.Chmod(0o644); chmodErr != nil {
+		return fmt.Errorf("failed to set cert file permissions: %v", chmodErr)
 	}
 
 	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
@@ -97,8 +97,8 @@ func createSelfSignedCerts() error {
 	defer keyFile.Close()
 
 	// Set private key file permissions to 600 (owner read/write)
-	if err := keyFile.Chmod(0o600); err != nil {
-		return fmt.Errorf("failed to set key file permissions: %v", err)
+	if chmodKeyErr := keyFile.Chmod(0o600); chmodKeyErr != nil {
+		return fmt.Errorf("failed to set key file permissions: %v", chmodKeyErr)
 	}
 
 	err = pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})

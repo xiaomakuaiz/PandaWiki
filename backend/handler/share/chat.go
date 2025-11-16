@@ -108,8 +108,10 @@ func (h *ShareChatHandler) ChatMessage(c echo.Context) error {
 	userID := c.Get("user_id")
 	h.logger.Debug("userid:", userID)
 	if userID != nil { // find userinfo from auth
-		userIDValue := userID.(uint)
-		req.Info.UserInfo.AuthUserID = userIDValue
+		userIDValue, ok := userID.(uint)
+		if ok {
+			req.Info.UserInfo.AuthUserID = userIDValue
+		}
 	}
 
 	eventCh, err := h.chatUsecase.Chat(ctx, &req)

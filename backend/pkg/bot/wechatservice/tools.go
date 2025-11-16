@@ -2,6 +2,7 @@ package wechatservice
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -17,8 +18,14 @@ import (
 
 // 读取 cursor，以客服账号的消息作为key，返回对应的cursor值
 func getCursor(openKfId string) string {
-	cursorValue, _ := KfCursors.Load(openKfId)
-	cursor, _ := cursorValue.(string)
+	cursorValue, ok := KfCursors.Load(openKfId)
+	if !ok {
+		return ""
+	}
+	cursor, ok := cursorValue.(string)
+	if !ok {
+		return ""
+	}
 	return cursor
 }
 
@@ -27,7 +34,7 @@ func setCursor(openKfId, cursor string) {
 	KfCursors.Store(openKfId, cursor)
 }
 
-func CheckSessionState(token, extrenaluserid, kfId string) (int, error) {
+func CheckSessionState(ctx context.Context, token, extrenaluserid, kfId string) (int, error) {
 	var statusrequest struct {
 		OpenKfId       string `json:"open_kfid"`
 		ExternalUserid string `json:"external_userid"`
@@ -41,7 +48,18 @@ func CheckSessionState(token, extrenaluserid, kfId string) (int, error) {
 	}
 	// 获取状态信息
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/service_state/get?access_token=%s", token)
-	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return 0, fmt.Errorf("创建请求失败: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("发送请求失败: %v", err)
+	}
+	defer resp.Body.Close()
 
 	// 读取响应体
 	body, err := io.ReadAll(resp.Body)
@@ -61,7 +79,7 @@ func CheckSessionState(token, extrenaluserid, kfId string) (int, error) {
 	return response.ServiceState, nil
 }
 
-func ChangeState(token, extrenaluserId, kfId string, state int, serviceId string) error {
+func ChangeState(ctx context.Context, token, extrenaluserId, kfId string, state int, serviceId string) error {
 	var changestate struct {
 		OpenKfId       string `json:"open_kfid"`
 		ExternalUserid string `json:"external_userid"`
@@ -78,7 +96,18 @@ func ChangeState(token, extrenaluserId, kfId string, state int, serviceId string
 	}
 	// 发送请求
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/service_state/trans?access_token=%s", token)
-	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("创建请求失败: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("发送请求失败: %v", err)
+	}
+	defer resp.Body.Close()
 
 	// 读取响应体
 	body, err := io.ReadAll(resp.Body)
@@ -102,7 +131,7 @@ func ChangeState(token, extrenaluserId, kfId string, state int, serviceId string
 	return nil
 }
 
-func GetUserInfo(userid string, accessToken string) (*Customer, error) {
+func GetUserInfo(ctx context.Context, userid string, accessToken string) (*Customer, error) {
 	userInfoRequest := UerInfoRequest{
 		UserID:         []string{userid},
 		SessionContext: 0,
@@ -115,8 +144,14 @@ func GetUserInfo(userid string, accessToken string) (*Customer, error) {
 		return nil, err
 	}
 	// post获取用户的消息信息
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +175,7 @@ func GetUserInfo(userid string, accessToken string) (*Customer, error) {
 }
 
 // get image id
-func GetUserImageID(accessToken, filePath string) (string, error) {
+func GetUserImageID(ctx context.Context, accessToken, filePath string) (string, error) {
 	UImageCache.Mutex.Lock()
 	defer UImageCache.Mutex.Unlock()
 
@@ -149,7 +184,7 @@ func GetUserImageID(accessToken, filePath string) (string, error) {
 	}
 
 	// URL
-	mediaID, err := UploadMediaFromURL(accessToken, filePath)
+	mediaID, err := UploadMediaFromURL(ctx, accessToken, filePath)
 
 	if err != nil {
 		return "", err
@@ -162,7 +197,7 @@ func GetUserImageID(accessToken, filePath string) (string, error) {
 }
 
 // get image id
-func GetDefaultImageID(accessToken, ImageBase64 string) (string, error) {
+func GetDefaultImageID(ctx context.Context, accessToken, ImageBase64 string) (string, error) {
 	DImageCache.Mutex.Lock()
 	defer DImageCache.Mutex.Unlock()
 
@@ -171,7 +206,7 @@ func GetDefaultImageID(accessToken, ImageBase64 string) (string, error) {
 	}
 
 	// Base64编码
-	mediaID, err := UploadMediaFromBase64(accessToken, ImageBase64)
+	mediaID, err := UploadMediaFromBase64(ctx, accessToken, ImageBase64)
 
 	if err != nil {
 		return "", err
@@ -183,9 +218,15 @@ func GetDefaultImageID(accessToken, ImageBase64 string) (string, error) {
 }
 
 // upload media to wechat server from URL
-func UploadMediaFromURL(accessToken, fileURL string) (string, error) {
+func UploadMediaFromURL(ctx context.Context, accessToken, fileURL string) (string, error) {
 	// 处理URL
-	resp, err := http.Get(fileURL)
+	req, err := http.NewRequestWithContext(ctx, "GET", fileURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("下载图片失败: %w", err)
 	}
@@ -205,11 +246,11 @@ func UploadMediaFromURL(accessToken, fileURL string) (string, error) {
 		}
 	}
 
-	return uploadMediaToWechat(accessToken, reader, fileName)
+	return uploadMediaToWechat(ctx, accessToken, reader, fileName)
 }
 
 // upload media to wechat server from Base64
-func UploadMediaFromBase64(accessToken, base64Data string) (string, error) {
+func UploadMediaFromBase64(ctx context.Context, accessToken, base64Data string) (string, error) {
 	// 处理Base64编码的图片
 	parts := strings.SplitN(base64Data, ",", 2)
 	if len(parts) != 2 {
@@ -225,11 +266,11 @@ func UploadMediaFromBase64(accessToken, base64Data string) (string, error) {
 	reader := bytes.NewReader(decodedData)
 	fileName := "image.png" // const
 
-	return uploadMediaToWechat(accessToken, reader, fileName)
+	return uploadMediaToWechat(ctx, accessToken, reader, fileName)
 }
 
 // upload media to wechat server - common function
-func uploadMediaToWechat(accessToken string, reader io.Reader, fileName string) (string, error) {
+func uploadMediaToWechat(ctx context.Context, accessToken string, reader io.Reader, fileName string) (string, error) {
 	// 上传文件 req
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -245,12 +286,12 @@ func uploadMediaToWechat(accessToken string, reader io.Reader, fileName string) 
 		return "", fmt.Errorf("复制图片数据失败: %w", err)
 	}
 
-	if err := writer.Close(); err != nil {
-		return "", err
+	if closeErr := writer.Close(); closeErr != nil {
+		return "", closeErr
 	}
 
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=%s&type=image", accessToken)
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
 	if err != nil {
 		return "", err
 	}
@@ -275,7 +316,7 @@ func uploadMediaToWechat(accessToken string, reader io.Reader, fileName string) 
 	return result.MediaID, nil
 }
 
-func getMsgs(accessToken string, msg *WeixinUserAskMsg) (*MsgRet, error) {
+func getMsgs(ctx context.Context, accessToken string, msg *WeixinUserAskMsg) (*MsgRet, error) {
 	var msgRet MsgRet
 	// 拉取消息的路由
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/sync_msg?access_token=%s", accessToken)
@@ -289,9 +330,19 @@ func getMsgs(accessToken string, msg *WeixinUserAskMsg) (*MsgRet, error) {
 		Cursor:      cursor,
 	}
 
-	jsonBody, _ := json.Marshal(msgBody)
+	jsonBody, err := json.Marshal(msgBody)
+	if err != nil {
+		return nil, err
+	}
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody)) // 得到对应的回复
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req) // 得到对应的回复
 	if err != nil {
 		return nil, err
 	}

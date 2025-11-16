@@ -18,6 +18,9 @@ const (
 )
 
 func GetLicenseEdition(c echo.Context) LicenseEdition {
-	edition, _ := c.Get("edition").(LicenseEdition)
+	edition, ok := c.Get("edition").(LicenseEdition)
+	if !ok {
+		return LicenseEditionFree
+	}
 	return edition
 }

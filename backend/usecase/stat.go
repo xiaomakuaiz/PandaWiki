@@ -365,7 +365,7 @@ func (u *StatUseCase) GetConversationDistribution(ctx context.Context, kbID stri
 				existDist.Count += v
 			} else {
 				mergedDistributions[key] = &domain.ConversationDistribution{
-					AppType: domain.AppType(t),
+					AppType: domain.AppType(t), //nolint:gosec // G115: Safe conversion, t is validated enum value
 					AppID:   "",
 					Count:   v,
 				}

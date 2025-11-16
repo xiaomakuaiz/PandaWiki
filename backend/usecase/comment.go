@@ -114,7 +114,7 @@ func (u *CommentUsecase) GetCommentListByNodeID(ctx context.Context, nodeID stri
 		return comment
 	})
 	// success
-	return domain.NewPaginatedResult(comments, uint64(total)), nil
+	return domain.NewPaginatedResult(comments, uint64(total)), nil //nolint:gosec // G115: Safe conversion, total is database count within uint64 range
 }
 
 func (u *CommentUsecase) GetCommentListByKbID(ctx context.Context, req *domain.CommentListReq, edition consts.LicenseEdition) (*domain.PaginatedResult[[]*domain.CommentListItem], error) {
@@ -156,7 +156,7 @@ func (u *CommentUsecase) GetCommentListByKbID(ctx context.Context, req *domain.C
 		return comment
 	})
 
-	return domain.NewPaginatedResult(comments, uint64(total)), nil
+	return domain.NewPaginatedResult(comments, uint64(total)), nil //nolint:gosec // G115: Safe conversion, total is database count within uint64 range
 }
 
 // 批量删除评论， （简单化，只删除传入评论id）

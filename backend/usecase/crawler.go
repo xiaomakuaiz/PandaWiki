@@ -37,7 +37,7 @@ func NewCrawlerUsecase(logger *log.Logger, mqConsumer mq.MQConsumer, cache *cach
 		httpClient: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: true, //nolint:gosec // G402: Crawler may need to access various servers with self-signed certificates
 				},
 			},
 		},
