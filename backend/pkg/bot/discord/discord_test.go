@@ -24,7 +24,10 @@ func TestDiscord(t *testing.T) {
 		}()
 		return contentCh, nil
 	}
-	c, _ := NewDiscordClient(log, token, getQA)
+	c, err := NewDiscordClient(log, token, getQA)
+	if err != nil {
+		t.Fatalf("Failed to create Discord client: %v", err)
+	}
 	if err := c.Start(); err != nil {
 		t.Errorf("Failed to start Discord client: %v", err)
 	}
