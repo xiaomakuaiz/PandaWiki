@@ -14,7 +14,7 @@ import (
 
 const (
 	AuthURL      = "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
-	TokenURL     = "https://open.feishu.cn/open-apis/authen/v2/oauth/token"     //nolint:gosec // G101: Not a credential, just API endpoint URL
+	TokenURL     = "https://open.feishu.cn/open-apis/authen/v2/oauth/token" //nolint:gosec // G101: Not a credential, just API endpoint URL
 	UserInfoURL  = "https://open.feishu.cn/open-apis/authen/v1/user_info"
 	callbackPath = "/share/pro/v1/openapi/feishu/callback"
 )

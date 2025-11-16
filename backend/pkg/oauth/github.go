@@ -17,7 +17,7 @@ import (
 
 const (
 	githubAuthorizeURL    = "https://github.com/login/oauth/authorize"
-	githubTokenURL        = "https://github.com/login/oauth/access_token"        //nolint:gosec // G101: Not a credential, just API endpoint URL
+	githubTokenURL        = "https://github.com/login/oauth/access_token" //nolint:gosec // G101: Not a credential, just API endpoint URL
 	githubUserInfoURL     = "https://api.github.com/user"
 	githubUserEmailURL    = "https://api.github.com/user/emails"
 	githubCallbackPathPro = "/share/pro/v1/openapi/github/callback"
